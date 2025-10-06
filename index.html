@@ -207,7 +207,7 @@
         <button class="btn ghost" id="prevBtn">이전</button>
         <button class="btn primary" id="nextBtn">다음</button>
         <button class="btn ghost" id="shuffleBtn">랜덤화</button>
-        <button class="btn ghost" id="helpBtn">도움말</button>
+        <button class="btn ghost" id="helpBtn">도움말</button> <button class="btn ghost" id="cardModeBtn" aria-pressed="false">카드 모드</button>
 </div>
     </div>
   </header>
@@ -217,6 +217,14 @@
       <section class="card">
         <div class="heading" id="title">제목</div>
         <div class="criteria" id="criteria"></div>
+        <!-- 카드 모드 전용 블록 (기존 기능은 그대로, 카드 모드에서만 표시) -->
+        <div id="cardModeBlock" style="display:none; margin-top:12px;">
+          <div id="cardAnswer" class="criteria" style="display:none;;border-top:none;padding-top:0;margin-top:0"></div>
+          <div class="row" style="margin-top:10px;">
+            <button class="btn ghost" id="toggleAnswerBtn">정답 보기</button>
+          </div>
+        </div>
+
         <!-- <div class="muted" style="margin-top:10px;">답안에 모든 <b>키워드</b>가 포함되면 정답입니다.</div> -->
         <div style="margin-top:12px;">
           <textarea id="answer" rows="6" placeholder="여기에 답을 입력하고 Enter 또는 ‘채점’을 누르세요."></textarea>
@@ -538,5 +546,135 @@ function initUnitFilter(){
 window.addEventListener('DOMContentLoaded', () => { initUnitFilter(); setShuffleButtonText(!!window.__isShuffled); });
 
 </script>
+
+<script>
+(function(){
+  const $ = (id)=>document.getElementById(id);
+  const btn = $('cardModeBtn');
+  const answerEl = $('answer');
+  const answerArea = document.getElementById('answerArea');
+  const gradeBtn = $('gradeBtn');
+  const revealBtn = $('revealBtn');
+  const block = $('cardModeBlock');
+  const cardAnswer = $('cardAnswer');
+  const toggleAnswerBtn = $('toggleAnswerBtn');
+
+  if(!btn || !answerEl || !gradeBtn || !revealBtn || !block || !toggleAnswerBtn) return;
+
+  // global flag
+  window.__isCardMode = !!window.__isCardMode;
+
+  function criteriaToHtml(text){
+    if(!text) return "<p>(기준 없음)</p>";
+    const lines = String(text).split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+    if(lines.length<=1) return "<p>"+escapeHtml(text)+"</p>";
+    return "<ul>"+lines.map(s=>"<li>"+escapeHtml(s)+"</li>").join("")+"</ul>";
+  }
+  function escapeHtml(s){return (s||"").replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[m]))}
+
+  function updateUI(){
+    btn.textContent = window.__isCardMode ? '모드 해제' : '카드 모드';
+    btn.setAttribute('aria-pressed', String(window.__isCardMode));
+    if (answerArea) answerArea.style.display = window.__isCardMode ? 'none' : '';
+    // Keep direct answerEl hide for safety
+    answerEl.style.display = window.__isCardMode ? 'none' : '';
+    gradeBtn.style.display = window.__isCardMode ? 'none' : '';
+    revealBtn.style.display = window.__isCardMode ? 'none' : '';
+    block.style.display = window.__isCardMode ? 'block' : 'none';
+    if(!window.__isCardMode){
+      // reset
+      cardAnswer.style.display='none';
+      toggleAnswerBtn.textContent='정답 보기';
+    
+    // 카드 모드 전환 시 채점 결과/키워드/정답 메시지 정리
+    const resEl = document.getElementById('result');
+    const kwEl = document.getElementById('kwWrap');
+    const chips = document.getElementById('kwChips');
+    if (window.__isCardMode) {
+      if (resEl) { resEl.style.display = 'none'; resEl.textContent = ''; }
+      if (kwEl)  { kwEl.style.display = 'none'; kwEl.innerHTML = ''; }
+      if (chips) { chips.remove(); }
+      // 카드 모드 진입 시 카드 정답 영역도 초기화
+      cardAnswer.style.display = 'none';
+      toggleAnswerBtn.textContent = '정답 보기';
+    } else {
+      if (kwEl) kwEl.style.display = '';
+      // 카드 모드 해제 시에는 결과 영역을 자동으로 다시 보이게 하지 않음(이전 상태 유지 대신 초기화)
+    }
+}
+  }
+  function resetCardAnswer(){
+    if(!window.__isCardMode) return;
+    cardAnswer.style.display='none';
+    toggleAnswerBtn.textContent='정답 보기';
+  }
+  window.__resetCardAnswer = resetCardAnswer; // expose
+
+  btn.addEventListener('click', ()=>{
+    window.__isCardMode = !window.__isCardMode;
+    updateUI();
+    // Immediate cleanup to avoid flicker or previously rendered elements
+    if (window.__isCardMode) {
+      const resEl = document.getElementById('result');
+      const kwEl  = document.getElementById('kwWrap');
+      const chips = document.getElementById('kwChips');
+      if (resEl) { resEl.style.display = 'none'; resEl.textContent = ''; resEl.innerHTML=''; }
+      if (kwEl)  { kwEl.style.display = 'none'; kwEl.innerHTML=''; }
+      if (chips) { chips.remove(); }
+    }
+  });
+
+  
+  toggleAnswerBtn.addEventListener('click', ()=>{
+    try{
+      // Use global identifiers if available (not window.* because top-level let/const are not on window)
+      const _pos = (typeof pos !== 'undefined') ? pos : (typeof window.pos !== 'undefined' ? window.pos : 0);
+      const _state = (typeof state !== 'undefined') ? state : (typeof window.state !== 'undefined' ? window.state : null);
+      const _DATA = (typeof DATA !== 'undefined') ? DATA : (Array.isArray(window.DATA) ? window.DATA : []);
+      const id = (_state && Array.isArray(_state.order)) ? _state.order[_pos || 0] : (_pos || 0);
+      const rec = (_DATA && _DATA.length) ? _DATA[id] || _DATA[0] : null;
+      const criteria = rec && (rec.criteria || rec['criteria']) ? (rec.criteria || rec['criteria']) : '';
+
+      if(cardAnswer.style.display === 'none'){
+        cardAnswer.innerHTML = '<b>정답:</b><br>' + criteriaToHtml(criteria);
+        cardAnswer.style.display = 'block';
+        toggleAnswerBtn.textContent = '정답 숨기기';
+      }else{
+        cardAnswer.style.display = 'none';
+        toggleAnswerBtn.textContent = '정답 보기';
+      }
+    }catch(e){
+      console.warn('카드 모드 정답 토글 오류:', e);
+    }
+  });
+// 문항 이동 시 카드 모드 정답 상태 초기화: go를 감싸기
+  if(typeof window.go === 'function'){
+    const __origGo = window.go;
+    window.go = function(i){
+      const out = __origGo.call(this, i);
+      try{ resetCardAnswer(); }catch(e){}
+      return out;
+    };
+  } else {
+    // 혹시 go가 나중에 정의될 경우 대비
+    const obs = new MutationObserver(()=>{
+      if(typeof window.go === 'function'){
+        const __origGo = window.go;
+        window.go = function(i){
+          const out = __origGo.call(this, i);
+          try{ resetCardAnswer(); }catch(e){}
+          return out;
+        };
+        obs.disconnect();
+      }
+    });
+    obs.observe(document.documentElement, {childList:true, subtree:true});
+  }
+
+  // 초기 렌더 반영
+  updateUI();
+})();
+</script>
+
 </body>
 </html>
