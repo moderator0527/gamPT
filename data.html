@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>감PT 데이터 업데이트 툴</title>
+  <meta property="og:image" content="https://i.ibb.co/d45hQ507/Plugin-icon-3.jpg">
+  <!-- Pretendard 폰트 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" />
+
+  <!-- PapaParse (CSV 파서) -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <style>
+    :root {
+      --brand:#10a37f;
+      --bg:#ffffff;
+      --text:#111111;
+      --border: #dddddd;
+      --muted: #555555;
+      --card:#ffffff;
+      --line:#e5e7eb;
+      --accent: #10a37f;
+      --accent-2: #1cc8a0;
+      --radius:14px;
+      --ok: #22c55e;
+      --shadow: 0 4px 12px rgba(0,0,0,0.08);
+      --radius-lg: 16px;
+      --radius-md: 12px;
+      --radius-sm: 10px;
+    }
+    * { box-sizing:border-box; }
+    html, body {
+      margin:0; padding: 0;
+      background:var(--bg);
+      color:var(--text);
+      font-family:"Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI",
+                   Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", Arial,
+                   "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
+    }
+
+    header { position:sticky; top:0; z-index:10; background:#fff; border-bottom:1px solid var(--border); }
+    .container { max-width: 1024px; margin: 0 auto; padding: 16px; }
+    .title { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 10px; letter-spacing: .1px; }
+    .brand {
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 12px;
+      background:#ffffff;
+      border:1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+    }
+    .brand .orb { width: 10px; height: 10px; border-radius: 999px; background: radial-gradient(circle at 30% 30%, #7df5d3, var(--accent));
+      box-shadow: 0 0 16px rgba(16,163,127,.6); }
+    .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    .spacer { flex:1; }
+    .pill {
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      border:1px solid var(--border);
+      background:#ffffff;
+      border-radius:999px;
+      padding:6px 10px;
+      font-size:12px;
+      color: var(--text);
+      box-shadow: var(--shadow);
+    }
+    .update-tag { color:var(--brand); font-size:12px; font-weight:500; margin-left:6px; }
+
+    /* --- 페이지 기본 구조 --- */
+    main {
+      max-width:980px;
+      margin:24px auto;
+      padding:0 16px;
+    }
+    .card {
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      padding:16px;
+      margin-bottom:16px;
+      box-shadow:0 1px 2px rgba(0,0,0,.04);
+    }
+    label { display:block; font-weight:700; margin-bottom:6px; }
+    input[type=file], select {
+      display:block;
+      width:100%;
+      padding:10px 12px;
+      border-radius:10px;
+      border:1px solid var(--line);
+      background:#fff;
+      color:var(--text);
+    }
+    .row3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; }
+
+    /* --- 버튼 (채점 버튼 동일 톤) --- */
+    .btn {
+      display:inline-flex;
+      align-items:center;
+      justify-content:center; /* 오타 수정 */
+      padding:10px 16px;
+      line-height:1;
+      border-radius:10px;
+      border:1px solid transparent;
+      cursor:pointer;
+      user-select:none;
+      transition:transform .02s ease, filter .2s ease;
+    }
+    .btn:active { transform:translateY(1px); }
+    .btn-primary {
+      background-color:#10a37f;
+      border-color:#0f8f70;
+      color:#fff;
+      box-shadow:0 2px 0 rgba(0,0,0,.06), 0 1px 1px rgba(0,0,0,.08);
+    }
+    .btn-primary:hover { filter:brightness(1.05); }
+    .btn-primary:disabled { opacity:.6; cursor:not-allowed; }
+    .btn-secondary {
+      background: transparent;
+      border:1px solid var(--line);
+      color:#111;
+    }
+
+    .muted { color:var(--muted); }
+    pre {
+      white-space:pre-wrap;
+      word-break:break-word;
+      background:#f9fafb;
+      border:1px solid var(--line);
+      border-radius:10px;
+      padding:12px;
+      max-height:260px;
+      overflow:auto;
+    }
+    table {
+      width:100%;
+      border-collapse:collapse;
+      font-size:14px;
+    }
+    th,td {
+      border-bottom:1px solid var(--line);
+      padding:8px;
+      text-align:left;
+    }
+    th { background:#f9fafb; }
+    details>summary { cursor:pointer; font-weight:700; }
+    .ok { color:#16a34a; font-weight:800; }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="container">
+      <div class="row">
+        <span class="orb"></span>
+        <div class="brand">
+          <span class="orb"></span><span class="title">감PT</span>
+          <span class="update-tag"><b>데이터 업데이트 툴</b></span>
+        </div>
+        <div class="spacer"></div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="card">
+      <p class="muted">
+        김용진의 귀찮은 노가다를 줄이기 위해 개발된 <b>문제 데이터 자동 업데이트 툴</b>입니다.
+      </p>
+
+      <div class="row3">
+        <div>
+          <label>1) 문제 데이터 CSV 선택</label>
+          <input id="csvFile" type="file" accept=".csv,text/csv" />
+        </div>
+        <div>
+          <label>2) 기존 index.html 선택</label>
+          <input id="htmlFile" type="file" accept=".html,text/html" />
+        </div>
+        <div>
+          <label>CSV 인코딩</label>
+          <select id="encodingSelect">
+            <option value="auto" selected>자동(UTF-8 → EUC-KR)</option>
+            <option value="utf-8">UTF-8</option>
+            <option value="euc-kr">EUC-KR (CP949 호환)</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+        <button id="btnPreview" class="btn btn-secondary" disabled>미리보기</button>
+        <button id="btnBuild" class="btn btn-primary" disabled>데이터 업데이트하기</button>
+      </div>
+
+      <p class="muted" style="margin-top:8px">
+        참고: 한글이 깨지면 인코딩을 <b>EUC-KR</b>로 바꿔 재시도해 주세요.
+      </p>
+    </div>
+
+    <div class="card" id="reportCard" style="display:none">
+      <h3>변환 결과</h3>
+      <div id="summary" class="muted"></div>
+      <div id="unitTableWrap" style="margin-top:12px"></div>
+      <details style="margin-top:12px">
+        <summary>JSON 데이터 일부 미리보기</summary>
+        <pre id="jsonPreview"></pre>
+      </details>
+    </div>
+  </main>
+
+  <script>
+    const $ = s => document.querySelector(s);
+
+    // 요소 참조 (안전 가드)
+    const csvInput      = $('#csvFile');
+    const htmlInput     = $('#htmlFile');
+    const encSelect     = $('#encodingSelect');
+    const btnBuild      = $('#btnBuild');
+    const btnPreview    = $('#btnPreview');
+    const reportCard    = $('#reportCard');
+    const summaryEl     = $('#summary');
+    const unitTableWrap = $('#unitTableWrap');
+    const jsonPreview   = $('#jsonPreview');
+
+    // 상태 플래그
+    let hasCSV = false;
+    let hasHTML = false;
+
+    // 실제 데이터 보관
+    let csvText = null, csvRows = null, originalHTML = '';
+
+    function updateUI(){
+      const ok = hasCSV && hasHTML;
+      if (btnBuild)   btnBuild.disabled   = !ok;
+      if (btnPreview) btnPreview.disabled = !ok;
+    }
+
+    // ---------- 파일 읽기 유틸 ----------
+    async function readFileAsArrayBuffer(file){
+      return new Promise((resolve,reject)=>{
+        const fr = new FileReader();
+        fr.onerror = ()=>reject(fr.error);
+        fr.onload  = ()=>resolve(fr.result);
+        fr.readAsArrayBuffer(file);
+      });
+    }
+
+    function tryDecode(buf,enc){
+      try{ return new TextDecoder(enc,{fatal:false}).decode(buf); }
+      catch(e){ return null; }
+    }
+
+    function looksGarbled(s){
+      if(!s) return true;
+      const total=s.length;
+      const repl=(s.match(/\uFFFD/g)||[]).length; // replacement char
+      let hangul=0;
+      for(let i=0;i<s.length;i++){
+        const c=s.charCodeAt(i);
+        if(c>=0xAC00 && c<=0xD7AF) hangul++;
+      }
+      const replRate=repl/Math.max(1,total);
+      const hangulRate=hangul/Math.max(1,total);
+      return (replRate>0.01)||(hangulRate<0.01&&(/[^\x09\x0A\x0D\x20-\x7E,;:.\-_\"]/.test(s)));
+    }
+
+    async function loadCSV(file,mode){
+      if (typeof Papa === 'undefined') {
+        throw new Error('CSV 파서 로딩 실패(PapaParse). 네트워크 상태를 확인해 주세요.');
+      }
+      const buf=await readFileAsArrayBuffer(file);
+      let text=null;
+      if(mode==='utf-8') text=tryDecode(buf,'utf-8');
+      else if(mode==='euc-kr') text=tryDecode(buf,'euc-kr')||tryDecode(buf,'ks_c_5601-1987');
+      else{
+        const t1=tryDecode(buf,'utf-8');
+        if(t1&&!looksGarbled(t1)) text=t1;
+        else {
+          const t2=tryDecode(buf,'euc-kr')||tryDecode(buf,'ks_c_5601-1987');
+          text=t2&&!looksGarbled(t2)?t2:(t1||t2);
+        }
+      }
+      if(!text) throw new Error('CSV 디코딩 실패');
+      const parsed=Papa.parse(text,{header:true,skipEmptyLines:true});
+      if (parsed.errors && parsed.errors.length){
+        throw new Error('CSV 파싱 오류: ' + parsed.errors[0].message);
+      }
+      return {text,rows:parsed.data};
+    }
+
+    // ---------- 이벤트 ----------
+    htmlInput?.addEventListener('change', async e=>{
+      const f=e.target.files?.[0];
+      hasHTML = false;
+      updateUI();
+      if(!f) return;
+      try{
+        // 일부 브라우저에서 대용량/비UTF-8 파일 텍스트 읽기 실패하는 경우를 대비
+        if (f.text) {
+          originalHTML = await f.text();
+        } else {
+          // 폴백: ArrayBuffer -> utf-8 디코딩 (index.html은 보통 UTF-8)
+          const buf = await readFileAsArrayBuffer(f);
+          originalHTML = tryDecode(buf,'utf-8') || '';
+        }
+        if (!originalHTML) throw new Error('HTML 파일을 읽지 못했습니다.');
+        hasHTML = true;
+        updateUI();
+      } catch(err){
+        alert('HTML 읽기 오류: ' + (err?.message || err));
+        hasHTML = false;
+        updateUI();
+      }
+    });
+
+    csvInput?.addEventListener('change', async e=>{
+      const f=e.target.files?.[0];
+      hasCSV = false;
+      updateUI();
+      if(!f) return;
+      try{
+        const {text,rows}=await loadCSV(f,encSelect?.value || 'auto');
+        csvText=text; csvRows=rows;
+        hasCSV = Array.isArray(rows); // 파싱 성공만 보장하면 활성화
+        updateUI();
+      }catch(err){
+        alert('CSV 읽기 오류: '+ (err?.message || err));
+        hasCSV = false;
+        updateUI();
+      }
+    });
+
+    encSelect?.addEventListener('change', async ()=>{
+      const f = csvInput?.files && csvInput.files[0];
+      hasCSV = false;
+      updateUI();
+      if (!f) return; // CSV를 아직 안 올린 상태
+      try{
+        const {text,rows}=await loadCSV(f,encSelect.value);
+        csvText=text; csvRows=rows;
+        hasCSV = Array.isArray(rows);
+        updateUI();
+      }catch(err){
+        alert('CSV 재해석 오류: '+ (err?.message || err));
+        hasCSV = false;
+        updateUI();
+      }
+    });
+
+    // ---------- 헤더 매핑 ----------
+    function normalizeHeaderName(raw){
+      const s = String(raw||'').trim().toLowerCase();
+      const dict = {
+        '단원':'unit','장':'unit',
+        '제목':'title','문항':'title','문제':'title',
+        '기준서':'criteria','기준':'criteria','정답':'criteria','본문':'criteria','답안':'criteria',
+        '키워드':'keywords','핵심어':'keywords'
+      };
+      if (['unit','title','criteria','keywords'].includes(s)) return s;
+      if (dict[s]) return dict[s];
+      const compact = s.replace(/\s+/g,'');
+      if (dict[compact]) return dict[compact];
+      if (s.includes('단원')) return 'unit';
+      if (s.includes('제목')||s.includes('문항')||s.includes('문제')) return 'title';
+      if (s.includes('기준서')||s.includes('기준')||s.includes('정답')||s.includes('본문')||s.includes('답안')) return 'criteria';
+      if (s.includes('키워드')||s.includes('핵심어')) return 'keywords';
+      return s;
+    }
+
+    function mapCols(row){
+      const map={title:null,criteria:null,keywords:null,unit:null};
+      for(const k of Object.keys(row)){
+        const norm = normalizeHeaderName(k);
+        const set=f=>!map[f]&&(map[f]=k);
+        if(norm==='title') set('title');
+        if(norm==='criteria') set('criteria');
+        if(norm==='keywords') set('keywords');
+        if(norm==='unit') set('unit');
+      }
+      return map;
+    }
+
+    function parseKeywords(v){ return String(v??'').split(/[\n;,]+/).map(x=>x.trim()).filter(Boolean); }
+    const normUnit=v=>String(v??'').trim();
+
+    function buildJSON(){
+      if(!csvRows?.length) throw new Error('CSV 데이터가 비었습니다.');
+      const map=mapCols(csvRows[0]);
+      const missing = Object.entries(map).filter(([,v])=>!v).map(([k])=>k);
+      if (missing.length){
+        throw new Error('필수 열 누락: ' + missing.join(', ') + ' (CSV 헤더: 단원/제목/기준서/키워드 를 확인하세요)');
+      }
+      return csvRows.map(r=>({
+        title:String(r[map.title]??'').trim(),
+        criteria:String(r[map.criteria]??'').trim(),
+        keywords:parseKeywords(r[map.keywords]),
+        unit:normUnit(r[map.unit])
+      }));
+    }
+
+    function summarize(data){
+      const total=data.length, counts={}, set=new Set();
+      data.forEach(d=>{set.add(d.unit);counts[d.unit]=(counts[d.unit]||0)+1;});
+      const units=[...set];
+      return {total,units,counts};
+    }
+
+    function replaceDataJson(html,jsonStr){
+      const re=/(<script\s+id="data-json"\s+type="application\/json">\s*)([\s\S]*?)(\s*<\/script>)/i;
+      return re.test(html)?html.replace(re,(_,a,b,c)=>a+jsonStr+c)
+          :html.replace(/<\/body>/i,`<script id="data-json" type="application/json">${jsonStr}<\/script>\n</body>`);
+    }
+
+    const download=(name,txt)=>{
+      const blob=new Blob([txt],{type:'text/html;charset=utf-8'});
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(blob); a.download=name; a.click();
+      setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+    };
+
+    // ---------- 미리보기 / 생성 ----------
+    btnPreview?.addEventListener('click',()=>{
+      try{
+        const data=buildJSON();
+        const {total,units,counts}=summarize(data);
+        const jsonStr=JSON.stringify(data);
+        reportCard.style.display='';
+        summaryEl.innerHTML=`총 문항: <b class='ok'>${total}</b> / 단원 수: <b class='ok'>${units.length}</b>`;
+        unitTableWrap.innerHTML='<table><thead><tr><th>단원</th><th>문항 수</th></tr></thead><tbody>'+
+          Object.entries(counts).map(([u,c])=>`<tr><td>${u}</td><td>${c}</td></tr>`).join('')+'</tbody></table>';
+        jsonPreview.textContent=jsonStr.slice(0,5000)+(jsonStr.length>5000?'\n…(생략)…':'');
+      }catch(e){ alert('미리보기 오류: '+e.message); }
+    });
+
+    btnBuild?.addEventListener('click',()=>{
+      try{
+        const data=buildJSON();
+        const newHTML=replaceDataJson(originalHTML,JSON.stringify(data));
+        download('index.html',newHTML);
+      }catch(e){ alert('생성 오류: '+e.message); }
+    });
+  </script>
+</body>
+</html>
