@@ -284,11 +284,13 @@
   </main>
 
   <script>
-    import { createClient } from '@supabase/supabase-js'
+    import { createClient } from '@supabase/supabase-js';
 
-    const supabaseUrl = 'https://vzvkexbqkqstcktbbgjt.supabase.co'
-    const supabaseKey = process.env.eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ6dmtleGJxa3FzdGNrdGJiZ2p0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIwOTA1MjQsImV4cCI6MjA3NzY2NjUyNH0.fM7ktZjsE08eaM99UsLMYYqutHpeAyMvj5U2StF6aD0
-    const supabase = createClient(supabaseUrl, supabaseKey)
+    const supabaseUrl = '<https://vzvkexbqkqstcktbbgjt.supabase.co>'; // Supabase 프로젝트 URL
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ6dmtleGJxa3FzdGNrdGJiZ2p0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIwOTA1MjQsImV4cCI6MjA3NzY2NjUyNH0.fM7ktZjsE08eaM99UsLMYYqutHpeAyMvj5U2StF6aD0'; // Supabase anon key
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    export default supabase;
   </script>
 
   <script>
