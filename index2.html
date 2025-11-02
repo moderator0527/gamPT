@@ -284,6 +284,14 @@
   </main>
 
   <script>
+    import { createClient } from '@supabase/supabase-js'
+
+    const supabaseUrl = 'https://vzvkexbqkqstcktbbgjt.supabase.co'
+    const supabaseKey = process.env.eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ6dmtleGJxa3FzdGNrdGJiZ2p0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIwOTA1MjQsImV4cCI6MjA3NzY2NjUyNH0.fM7ktZjsE08eaM99UsLMYYqutHpeAyMvj5U2StF6aD0
+    const supabase = createClient(supabaseUrl, supabaseKey)
+  </script>
+
+  <script>
     /* DATA will be loaded from #data-json */
     const KEY = "keyword_typer_state_v2_pretendard_v6";
     const qs = s => document.querySelector(s);
@@ -1015,13 +1023,6 @@ window.addEventListener('DOMContentLoaded', function(){
   function escapeHtml(s=''){
     return String(s).replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
   }
-
-  
-  import { createClient } from '@supabase/supabase-js'
-
-  const supabaseUrl = 'https://vzvkexbqkqstcktbbgjt.supabase.co'
-  const supabaseKey = process.env.eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ6dmtleGJxa3FzdGNrdGJiZ2p0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIwOTA1MjQsImV4cCI6MjA3NzY2NjUyNH0.fM7ktZjsE08eaM99UsLMYYqutHpeAyMvj5U2StF6aD0
-  const supabase = createClient(supabaseUrl, supabaseKey)
   
 </script>
 
