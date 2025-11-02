@@ -225,6 +225,13 @@
   #gsi-btn-wrap { display:none; }
 </style>
 
+<!-- Supabase JS v2 -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const SUPABASE_URL = "https://vzvkexbqkqstcktbbgjt.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ6dmtleGJxa3FzdGNrdGJiZ2p0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIwOTA1MjQsImV4cCI6MjA3NzY2NjUyNH0.fM7ktZjsE08eaM99UsLMYYqutHpeAyMvj5U2StF6aD0";
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+</script>
 
 </head>
 <body>
@@ -282,16 +289,6 @@
       </aside>
     </div>
   </main>
-
-  <script>
-    import { createClient } from '@supabase/supabase-js';
-
-    const supabaseUrl = '<https://vzvkexbqkqstcktbbgjt.supabase.co>'; // Supabase 프로젝트 URL
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ6dmtleGJxa3FzdGNrdGJiZ2p0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIwOTA1MjQsImV4cCI6MjA3NzY2NjUyNH0.fM7ktZjsE08eaM99UsLMYYqutHpeAyMvj5U2StF6aD0'; // Supabase anon key
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
-    export default supabase;
-  </script>
 
   <script>
     /* DATA will be loaded from #data-json */
@@ -936,6 +933,7 @@ window.addEventListener('DOMContentLoaded', function(){
   }
 
   // 구글 콜백: JWT에서 사용자 정보 추출 후 저장
+  /*
   function handleCredentialResponse(res) {
     try {
       const payload = parseJwtUtf8(res.credential); // ← 변경 포인트
@@ -951,6 +949,7 @@ window.addEventListener('DOMContentLoaded', function(){
       alert('로그인 처리 중 오류가 발생했습니다.');
     }
   }
+  */
 
   // 로그인 UI 렌더링
   function renderAuthUI(){
@@ -1026,6 +1025,77 @@ window.addEventListener('DOMContentLoaded', function(){
     return String(s).replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
   }
   
+</script>
+
+<script>
+  async function loginWithGoogle() {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: 'https://gampt.xyz/index2.html'  // 로그인 후 돌아올 URL
+      }
+    });
+    if (error) {
+      console.error(error);
+      alert('로그인에 실패했습니다.');
+    }
+  }
+
+  async function logout() {
+    await supabase.auth.signOut();
+    renderAuthUI();
+  }
+
+  async function getCurrentUser() {
+    const { data: { user } } = await supabase.auth.getUser();
+    return user || null;
+  }
+
+  // 페이지 로드 시 세션 확인 + UI 렌더
+  document.addEventListener('DOMContentLoaded', async () => {
+    // OAuth 리디렉션 후 세션 설정이 반영되기 위해 한 번 세션 확인
+    await supabase.auth.getSession();
+    renderAuthUI();
+
+    // 로그인 상태 변화에 반응 (새 탭/리디렉션 등)
+    supabase.auth.onAuthStateChange((_event, _session) => {
+      renderAuthUI();
+    });
+  });
+
+  async function renderAuthUI() {
+    const root = document.getElementById('auth-area');
+    if (!root) return;
+
+    const user = await getCurrentUser();
+    root.innerHTML = '';
+
+    if (user) {
+      // 로그인 상태: 유저 칩 + 로그아웃 버튼
+      const chip = document.createElement('div');
+      chip.className = 'user-chip';
+      chip.innerHTML = `
+        <img src="${(user.user_metadata && user.user_metadata.avatar_url) || ''}" alt="">
+        <span>${(user.user_metadata && (user.user_metadata.full_name || user.user_metadata.name)) || user.email || '사용자'}</span>
+      `;
+
+      const logoutBtn = document.createElement('button');
+      logoutBtn.className = 'auth-btn outline';
+      logoutBtn.textContent = '로그아웃';
+      logoutBtn.addEventListener('click', logout);
+
+      root.appendChild(chip);
+      root.appendChild(logoutBtn);
+    } else {
+      // 비로그인: Supabase 구글 로그인 버튼
+      const loginBtn = document.createElement('button');
+      loginBtn.className = 'auth-btn';
+      loginBtn.textContent = 'Google로 로그인 (Supabase)';
+      loginBtn.addEventListener('click', loginWithGoogle);
+
+      root.appendChild(loginBtn);
+    }
+  }
 </script>
 
 </body>
