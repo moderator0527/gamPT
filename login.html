@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Wiserlab 로그인</title>
+  <title>Wiserlab</title>
 
   <!-- Pretendard -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" />
@@ -14,89 +14,204 @@
     :root{
       --brand:#10a37f; --bg:#ffffff; --text:#111827; --muted:#6b7280; --line:#e5e7eb;
       --radius:14px; --shadow:0 6px 18px rgba(0,0,0,.06);
+      --border:#dddddd;
     }
     *{box-sizing:border-box}
     html,body{
-      margin:0;height:100%;background:var(--bg);color:var(--text);
+      margin:0;min-height:100%;background:var(--bg);color:var(--text);
       font-family:"Pretendard",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans KR","Apple SD Gothic Neo",Arial,sans-serif;
-      display:flex;align-items:center;justify-content:center
     }
+
+    /* ===== 헤더 (index2.html 스타일 맞춤) ===== */
+    header{position:sticky; top:0; z-index:20; background:#fff; border-bottom:1px solid var(--border)}
+    .container{max-width:1024px; margin:0 auto; padding:12px 16px; display:flex; align-items:center; gap:10px}
+    .menu-btn{border:none;background:#fff; width:36px; height:36px; border-radius:10px; display:grid; place-items:center; cursor:pointer; box-shadow:var(--shadow); border:1px solid var(--line)}
+    .menu-btn:active{transform:scale(.98)}
+    .menu-icon{width:18px; height:2px; background:#111; position:relative}
+    .menu-icon::before,.menu-icon::after{content:""; position:absolute; left:0; width:18px; height:2px; background:#111}
+    .menu-icon::before{top:-6px} .menu-icon::after{top:6px}
+
+    .brand{display:flex; align-items:center; gap:8px; padding:8px 12px; background:#fff; border:1px solid var(--border); border-radius:16px; box-shadow:var(--shadow)}
+    .brand .orb{width:10px;height:10px;border-radius:999px;background:radial-gradient(circle at 30% 30%,#8ff3da,var(--brand))}
+    .title{font-size:16px; font-weight:600; letter-spacing:.1px}
+    .spacer{flex:1}
+    .pill{display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border:1px solid var(--line); border-radius:999px; background:#fff; font-size:13px}
+
+    /* index2.html의 authbar 스타일 차용 */
+    .authbar{display:flex; align-items:center; gap:10px}
+    .auth-btn{appearance:none; border:1px solid #10a37f; background:#10a37f; color:#fff; padding:8px 14px; border-radius:999px; font-size:13px; font-weight:700; cursor:pointer; transition:.2s; line-height:1}
+    .auth-btn.outline{background:#fff; color:#10a37f}
+    .auth-btn:disabled{opacity:.5; cursor:not-allowed}
+    .user-chip{display:flex; align-items:center; gap:8px; padding:6px 10px; border:1px solid #e5e7eb; border-radius:999px; background:#fff; font-size:13px}
+    .user-chip img{width:22px; height:22px; border-radius:50%; object-fit:cover}
+
+    /* ===== 사이드바 ===== */
+    .sidebar-backdrop{position:fixed; inset:0; background:rgba(0,0,0,.25); display:none; z-index:30}
+    .sidebar{position:fixed; inset:0 auto 0 0; width:280px; background:#fff; border-right:1px solid var(--line);
+      transform:translateX(-100%); transition:transform .25s ease; z-index:31; display:flex; flex-direction:column}
+    .sidebar.open{transform:translateX(0)}
+    .sidebar-header{padding:16px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:8px; font-weight:700}
+    .nav{padding:8px}
+    .nav a{display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:10px; text-decoration:none; color:#111}
+    .nav a:hover{background:#f6f8fa}
+    .nav .badge{font-size:12px; color:#10a37f}
+
+    /* ===== 본문: 로그인 카드 ===== */
+    main{display:grid; place-items:center; padding:36px 16px}
     .card{
       width:360px;background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);
       padding:40px 30px;text-align:center
     }
-    .orb{width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#8ff3da,var(--brand));
-      box-shadow:0 0 14px rgba(16,163,127,.65);margin-right:8px;display:inline-block;vertical-align:middle}
     h1{font-size:20px;font-weight:800;margin:0 0 20px 0;display:flex;align-items:center;justify-content:center;gap:8px}
+    .orb{width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#8ff3da,var(--brand)); box-shadow:0 0 14px rgba(16,163,127,.65);margin-right:8px;display:inline-block;vertical-align:middle}
     p{font-size:14px;color:var(--muted);margin-bottom:28px}
-    .auth-btn{
-      width:100%; border:1px solid var(--line); border-radius:999px; padding:12px 16px;
-      font-size:15px; font-weight:700; cursor:pointer; background:#fff; display:flex; align-items:center; justify-content:center; gap:10px;
-      box-shadow:var(--shadow);
-    }
-    .auth-btn:hover{background:#f9fafb}
-    .auth-btn img{width:18px;height:18px}
     .hint{margin-top:24px;font-size:12px;color:var(--muted)}
     .error{margin-top:16px; font-size:12px; color:#b91c1c}
     footer{position:fixed;bottom:20px;width:100%;text-align:center;color:#94a3b8;font-size:12px}
   </style>
 </head>
 <body>
-  <div class="card">
-    <h1><span class="orb"></span>와이저랩 회원 로그인</h1>
-    <p>Google 계정으로 로그인하여 <br>와이저랩의 모든 서비스를 이용하세요.</p>
 
-    <!-- Supabase 구글 로그인 버튼 -->
-    <button class="auth-btn" id="google-login-btn" type="button">
-      <img alt="" src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg">
-      <span>Google로 로그인</span>
-    </button>
+  <!-- 헤더 -->
+  <header>
+    <div class="container">
+      <button class="menu-btn" id="menuBtn" aria-label="메뉴 열기">
+        <span class="menu-icon"></span>
+      </button>
 
-    <div class="hint">로그인 후 자동으로 메인 페이지로 이동합니다.</div>
-    <div class="error" id="err" style="display:none;"></div>
-  </div>
+      <div class="brand">
+        <span class="orb"></span>
+        <span class="title">Wiserlab</span>
+        <!--<span class="pill" style="margin-left:6px; font-weight:600; color:#10a37f;">로그인</span>-->
+      </div>
+
+      <div class="spacer"></div>
+
+      <!-- 오른쪽: 프로필/로그아웃 영역 -->
+      <div id="auth-area" class="authbar"></div>
+    </div>
+  </header>
+
+  <!-- 사이드바 -->
+  <div id="backdrop" class="sidebar-backdrop"></div>
+  <nav id="sidebar" class="sidebar" aria-hidden="true">
+    <div class="sidebar-header">메뉴</div>
+    <div class="nav">
+      <a href="#" id="goGamPT">
+        <span>감PT</span>
+        <span class="badge">열기</span>
+      </a>
+    </div>
+  </nav>
+
+  <!-- 본문 -->
+  <main>
+    <div class="card">
+      <h1><span class="orb"></span>와이저랩 회원 로그인</h1>
+      <p>Google 계정으로 로그인하여 <br>와이저랩의 모든 서비스를 이용하세요.</p>
+
+      <button class="auth-btn outline" id="google-login-btn" type="button">
+        <img alt="" src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" style="width:18px;height:18px">
+        <span>Google로 로그인</span>
+      </button>
+
+      <div class="hint">로그인 후 이 페이지에 머무르고, 상단 메뉴 또는 사이드바에서 감PT로 이동하세요.</div>
+      <div class="error" id="err" style="display:none;"></div>
+    </div>
+  </main>
 
   <footer>© 2025 Team Wiserlab</footer>
 
   <script>
-    // 1) Supabase 초기화 (Anon Key만! 절대 service_role 키를 노출하지 마세요)
+    // Supabase 초기화
     const SUPABASE_URL = "https://vzvkexbqkqstcktbbgjt.supabase.co";
     const SUPABASE_ANON_KEY =
       "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ6dmtleGJxa3FzdGNrdGJiZ2p0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIwOTA1MjQsImV4cCI6MjA3NzY2NjUyNH0.fM7ktZjsE08eaM99UsLMYYqutHpeAyMvj5U2StF6aD0";
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // 2) 버튼 클릭 시 구글 OAuth 시작 → 콜백 후 index2.html로 리다이렉트
-    const loginBtn = document.getElementById('google-login-btn');
-    const errBox = document.getElementById('err');
+    // 사이드바 토글
+    const menuBtn = document.getElementById('menuBtn');
+    const sidebar = document.getElementById('sidebar');
+    const backdrop = document.getElementById('backdrop');
 
-    loginBtn.addEventListener('click', async () => {
-      try {
-        const { error } = await supabase.auth.signInWithOAuth({
-          provider: 'google',
-          options: {
-            // 로그인 완료 후 돌아갈 URL
-            redirectTo: 'https://gampt.xyz/index2.html'
-          }
-        });
-        if (error) throw error;
-        // 실제로는 위 호출이 외부 구글 로그인 페이지로 이동합니다.
-      } catch (e) {
-        errBox.style.display = 'block';
-        errBox.textContent = '로그인 중 오류가 발생했습니다: ' + (e?.message || e);
-        console.error(e);
-      }
+    function openSidebar(){ sidebar.classList.add('open'); backdrop.style.display='block'; sidebar.setAttribute('aria-hidden','false'); }
+    function closeSidebar(){ sidebar.classList.remove('open'); backdrop.style.display='none'; sidebar.setAttribute('aria-hidden','true'); }
+
+    menuBtn.addEventListener('click', openSidebar);
+    backdrop.addEventListener('click', closeSidebar);
+    document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeSidebar(); });
+
+    // 감PT로 이동 (세션은 Supabase가 자동 유지)
+    document.getElementById('goGamPT').addEventListener('click', (e)=>{
+      e.preventDefault();
+      window.location.href = '/index2.html';
     });
 
-    // 3) 이미 로그인 상태로 들어온 경우엔 바로 index2.html로
-    (async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        // 여기서의 user 메타데이터는 UTF-8로 안전합니다 (한글 이름 깨짐 방지)
-        // 예: const name = session.user.user_metadata.full_name || session.user.user_metadata.name;
-        window.location.replace('https://gampt.xyz/index2.html');
+    // 로그인 / 로그아웃 UI
+    const authRoot = document.getElementById('auth-area');
+
+    function escapeHtml(s=''){ return String(s).replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
+
+    async function getCurrentUser(){
+      const { data: { user } } = await supabase.auth.getUser();
+      return user || null;
+    }
+
+    async function renderAuthUI(){
+      const user = await getCurrentUser();
+      authRoot.innerHTML = '';
+
+      if(user){
+        const name = user.user_metadata?.full_name || user.user_metadata?.name || user.email;
+        const avatar = user.user_metadata?.avatar_url || 'https://i.pravatar.cc/40';
+
+        const chip = document.createElement('div');
+        chip.className = 'user-chip';
+        chip.innerHTML = `<img src="${escapeHtml(avatar)}" alt=""><span>${escapeHtml(name||'사용자')}</span>`;
+
+        const logoutBtn = document.createElement('button');
+        logoutBtn.className = 'auth-btn outline';
+        logoutBtn.textContent = '로그아웃';
+        logoutBtn.addEventListener('click', async ()=>{
+          await supabase.auth.signOut();
+          renderAuthUI();
+        });
+
+        authRoot.appendChild(chip);
+        authRoot.appendChild(logoutBtn);
+      }else{
+        const loginBtn = document.createElement('button');
+        loginBtn.className = 'auth-btn';
+        loginBtn.textContent = 'Google 로그인';
+        loginBtn.addEventListener('click', loginWithGoogle);
+        authRoot.appendChild(loginBtn);
       }
-    })();
+    }
+
+    // 구글 OAuth 시작 (리디렉트는 login.html로 돌아오게)
+    async function loginWithGoogle(){
+      const backToHere = window.location.origin + '/login.html';
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: backToHere }
+      });
+      if(error){
+        errBox.style.display='block';
+        errBox.textContent = '로그인 중 오류가 발생했습니다: ' + (error.message || error);
+        console.error(error);
+      }
+    }
+
+    const loginBtn = document.getElementById('google-login-btn');
+    const errBox = document.getElementById('err');
+    loginBtn.addEventListener('click', loginWithGoogle);
+
+    // 페이지 로드 시: 세션 반영 후 UI 렌더 / 상태변화 구독
+    document.addEventListener('DOMContentLoaded', async ()=>{
+      await supabase.auth.getSession(); // OAuth 리디렉션 후 세션 반영
+      renderAuthUI();
+      supabase.auth.onAuthStateChange((_event, _session)=>{ renderAuthUI(); });
+    });
   </script>
 </body>
 </html>
-
