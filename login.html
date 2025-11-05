@@ -39,7 +39,7 @@
 
     /* index2.html의 authbar 스타일 차용 */
     .authbar{display:flex; align-items:center; gap:10px}
-    .auth-btn{appearance:none; border:1px solid #10a37f; background:#10a37f; color:#fff; padding:8px 14px; border-radius:999px; font-size:13px; font-weight:700; cursor:pointer; transition:.2s; line-height:1}
+    .auth-btn{appearance:none; border:1px solid #10a37f; background:#10a37f; color:#fff; padding:8px 14px; border-radius:999px; font-size:13px; font-weight:700; cursor:pointer; transition:.2s; line-height:1; text-decoration:none; display:inline-flex; align-items:center; gap:8px}
     .auth-btn.outline{background:#fff; color:#10a37f}
     .auth-btn:disabled{opacity:.5; cursor:not-allowed}
     .user-chip{display:flex; align-items:center; gap:8px; padding:6px 10px; border:1px solid #e5e7eb; border-radius:999px; background:#fff; font-size:13px}
@@ -82,7 +82,6 @@
       <div class="brand">
         <span class="orb"></span>
         <span class="title">Wiserlab</span>
-        <!--<span class="pill" style="margin-left:6px; font-weight:600; color:#10a37f;">로그인</span>-->
       </div>
 
       <div class="spacer"></div>
@@ -106,16 +105,19 @@
 
   <!-- 본문 -->
   <main>
-    <div class="card">
-      <h1><span class="orb"></span>와이저랩 회원 로그인</h1>
-      <p>Google 계정으로 로그인하여 <br>와이저랩의 모든 서비스를 이용하세요.</p>
+    <div class="card" id="login-card">
+      <h1 id="card-title"><span class="orb"></span>와이저랩 회원 로그인</h1>
+      <p id="card-desc">Google 계정으로 로그인하여 <br>와이저랩의 모든 서비스를 이용하세요.</p>
 
       <button class="auth-btn outline" id="google-login-btn" type="button">
         <img alt="" src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" style="width:18px;height:18px">
         <span>Google로 로그인</span>
       </button>
 
-      <div class="hint">로그인 후 이 페이지에 머무르고, 상단 메뉴 또는 사이드바에서 감PT로 이동하세요.</div>
+      <!-- 로그인 후에만 보이는 "시작하기" 버튼 (디자인 동일 계열) -->
+      <a id="start-btn" class="auth-btn" href="/index2.html" style="display:none;">시작하기</a>
+
+      <div class="hint" id="card-hint">로그인 후 사이드바에서 와이저랩의 서비스로 이동하세요.</div>
       <div class="error" id="err" style="display:none;"></div>
     </div>
   </main>
@@ -147,9 +149,8 @@
       window.location.href = '/index2.html';
     });
 
-    // 로그인 / 로그아웃 UI
-    const authRoot = document.getElementById('auth-area');
-
+    // ===== 상단 인증 UI =====
+    const authRoot  = document.getElementById('auth-area');
     function escapeHtml(s=''){ return String(s).replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
 
     async function getCurrentUser(){
@@ -175,20 +176,61 @@
         logoutBtn.addEventListener('click', async ()=>{
           await supabase.auth.signOut();
           renderAuthUI();
+          renderMainUI();
         });
 
         authRoot.appendChild(chip);
         authRoot.appendChild(logoutBtn);
       }else{
-        const loginBtn = document.createElement('button');
-        loginBtn.className = 'auth-btn';
-        loginBtn.textContent = 'Google 로그인';
-        loginBtn.addEventListener('click', loginWithGoogle);
-        authRoot.appendChild(loginBtn);
+        const loginBtnTop = document.createElement('button');
+        loginBtnTop.className = 'auth-btn';
+        loginBtnTop.textContent = 'Google 로그인';
+        loginBtnTop.addEventListener('click', loginWithGoogle);
+        authRoot.appendChild(loginBtnTop);
       }
     }
 
-    // 구글 OAuth 시작 (리디렉트는 login.html로 돌아오게)
+    // ===== 중앙 카드(UI 전환) =====
+    const cardTitle  = document.getElementById('card-title');
+    const cardDesc   = document.getElementById('card-desc');
+    const cardHint   = document.getElementById('card-hint');
+    const loginBtnEl = document.getElementById('google-login-btn');
+    const startBtnEl = document.getElementById('start-btn');
+    const errBox     = document.getElementById('err');
+
+    async function renderMainUI(){
+      const user = await getCurrentUser();
+
+      if(user){
+        const rawName =
+          user.user_metadata?.full_name ||
+          user.user_metadata?.name ||
+          (user.email ? user.email.split('@')[0] : '사용자');
+        const safeName = escapeHtml(rawName);
+
+        // 제목을 환영 문구로
+        cardTitle.innerHTML = `<span class="orb"></span>어서오세요, ${safeName} 님!`;
+
+        // 로그인 설명/버튼/힌트 숨기고 시작하기 버튼만 노출
+        cardDesc.style.display   = 'none';
+        loginBtnEl.style.display = 'none';
+        cardHint.style.display   = 'none';
+        startBtnEl.style.display = 'inline-flex';
+
+        // 에러 숨김
+        errBox.style.display = 'none';
+        errBox.textContent   = '';
+      }else{
+        // 비로그인: 원래 화면 복구
+        cardTitle.innerHTML     = `<span class="orb"></span>와이저랩 회원 로그인`;
+        cardDesc.style.display  = '';
+        loginBtnEl.style.display= 'inline-flex';
+        cardHint.style.display  = '';
+        startBtnEl.style.display= 'none';
+      }
+    }
+
+    // ===== OAuth =====
     async function loginWithGoogle(){
       const backToHere = window.location.origin + '/login.html';
       const { error } = await supabase.auth.signInWithOAuth({
@@ -203,14 +245,18 @@
     }
 
     const loginBtn = document.getElementById('google-login-btn');
-    const errBox = document.getElementById('err');
     loginBtn.addEventListener('click', loginWithGoogle);
 
-    // 페이지 로드 시: 세션 반영 후 UI 렌더 / 상태변화 구독
+    // ===== 초기화 =====
     document.addEventListener('DOMContentLoaded', async ()=>{
       await supabase.auth.getSession(); // OAuth 리디렉션 후 세션 반영
-      renderAuthUI();
-      supabase.auth.onAuthStateChange((_event, _session)=>{ renderAuthUI(); });
+      await renderAuthUI();
+      await renderMainUI();
+
+      supabase.auth.onAuthStateChange((_event, _session)=>{
+        renderAuthUI();
+        renderMainUI();
+      });
     });
   </script>
 </body>
