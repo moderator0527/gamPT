@@ -60,8 +60,48 @@
     main{display:grid; place-items:center; padding:36px 16px}
     .card{
       width:360px;background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);
-      padding:40px 30px;text-align:center
+      padding:40px 30px;
+      text-align:center;
+      opacity: 0;
+      transform: translateY(8px) scale(.985);
+      filter: blur(6px);
+      will-change: transform, opacity, filter;
     }
+
+.card.appear{
+  animation: card-in .56s cubic-bezier(.22,.61,.36,1) forwards;
+}
+
+@keyframes card-in{
+  to{
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+/* 작은 디테일: 카드 안의 요소도 살짝 순차 등장 */
+.card.appear > *{
+  animation: fade-up .5s ease forwards;
+  opacity: 0;
+}
+.card.appear > *:nth-child(1){ animation-delay: 0.06s }
+.card.appear > *:nth-child(2){ animation-delay: 0.12s }
+.card.appear > *:nth-child(3){ animation-delay: 0.18s }
+.card.appear > *:nth-child(4){ animation-delay: 0.24s }
+.card.appear > *:nth-child(5){ animation-delay: 0.30s }
+
+@keyframes fade-up{
+  from{ opacity: 0; transform: translateY(6px) }
+  to{ opacity: 1; transform: translateY(0) }
+}
+
+/* 접근성: 사용자가 '줄이기'를 선호하면 애니메이션 비활성화 */
+@media (prefers-reduced-motion: reduce){
+  .card{ opacity: 1; transform: none; filter: none }
+  .card.appear, .card.appear > *{ animation: none !important; opacity: 1 !important; transform: none !important }
+}
+
     h1{font-size:20px;font-weight:800;margin:0 0 20px 0;display:flex;align-items:center;justify-content:center;gap:8px}
     .orb{width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#8ff3da,var(--brand)); box-shadow:0 0 14px rgba(16,163,127,.65);margin-right:8px;display:inline-block;vertical-align:middle}
     p{font-size:14px;color:var(--muted);margin-bottom:28px}
@@ -252,6 +292,8 @@
       await supabase.auth.getSession(); // OAuth 리디렉션 후 세션 반영
       await renderAuthUI();
       await renderMainUI();
+
+      requestAnimationFrame(()=> document.getElementById('login-card')?.classList.add('appear'));
 
       supabase.auth.onAuthStateChange((_event, _session)=>{
         renderAuthUI();
