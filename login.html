@@ -9,8 +9,6 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" />
   <!-- Supabase JS v2 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- Toss Payments SDK -->
-  <script src="https://js.tosspayments.com/v2/"></script>
 
   <style>
     :root{
@@ -19,10 +17,12 @@
       --border:#dddddd;
     }
     *{box-sizing:border-box}
-    html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);
-      font-family:"Pretendard",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans KR","Apple SD Gothic Neo",Arial,sans-serif;}
+    html,body{
+      margin:0;min-height:100%;background:var(--bg);color:var(--text);
+      font-family:"Pretendard",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans KR","Apple SD Gothic Neo",Arial,sans-serif;
+    }
 
-    /* ===== 헤더 ===== */
+    /* ===== 헤더 (index2.html 스타일 맞춤) ===== */
     header{position:sticky; top:0; z-index:20; background:#fff; border-bottom:1px solid var(--border)}
     .container{max-width:1024px; margin:0 auto; padding:12px 16px; display:flex; align-items:center; gap:10px}
     .menu-btn{border:none;background:#fff; width:36px; height:36px; border-radius:10px; display:grid; place-items:center; cursor:pointer; box-shadow:var(--shadow); border:1px solid var(--line)}
@@ -30,13 +30,14 @@
     .menu-icon{width:18px; height:2px; background:#111; position:relative}
     .menu-icon::before,.menu-icon::after{content:""; position:absolute; left:0; width:18px; height:2px; background:#111}
     .menu-icon::before{top:-6px} .menu-icon::after{top:6px}
+
     .brand{display:flex; align-items:center; gap:8px; padding:8px 12px; background:#fff; border:1px solid var(--border); border-radius:16px; box-shadow:var(--shadow)}
     .brand .orb{width:10px;height:10px;border-radius:999px;background:radial-gradient(circle at 30% 30%,#8ff3da,var(--brand))}
     .title{font-size:16px; font-weight:600; letter-spacing:.1px}
     .spacer{flex:1}
     .pill{display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border:1px solid var(--line); border-radius:999px; background:#fff; font-size:13px}
 
-    /* 오른쪽 auth bar */
+    /* index2.html의 authbar 스타일 차용 */
     .authbar{display:flex; align-items:center; gap:10px}
     .auth-btn{appearance:none; border:1px solid #10a37f; background:#10a37f; color:#fff; padding:8px 14px; border-radius:999px; font-size:13px; font-weight:700; cursor:pointer; transition:.2s; line-height:1}
     .auth-btn.outline{background:#fff; color:#10a37f}
@@ -51,24 +52,26 @@
     .sidebar.open{transform:translateX(0)}
     .sidebar-header{padding:16px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:8px; font-weight:700}
     .nav{padding:8px}
-    .nav a{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; border-radius:10px; text-decoration:none; color:#111}
+    .nav a{display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:10px; text-decoration:none; color:#111}
     .nav a:hover{background:#f6f8fa}
     .nav .badge{font-size:12px; color:#10a37f}
-    .nav .badge.gray{color:#6b7280}
 
-    /* ===== 본문 ===== */
+    /* ===== 본문: 로그인 카드 ===== */
     main{display:grid; place-items:center; padding:36px 16px}
-    .card{width:360px;background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow); padding:40px 30px;text-align:center}
+    .card{
+      width:360px;background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);
+      padding:40px 30px;text-align:center
+    }
     h1{font-size:20px;font-weight:800;margin:0 0 20px 0;display:flex;align-items:center;justify-content:center;gap:8px}
     .orb{width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#8ff3da,var(--brand)); box-shadow:0 0 14px rgba(16,163,127,.65);margin-right:8px;display:inline-block;vertical-align:middle}
     p{font-size:14px;color:var(--muted);margin-bottom:28px}
     .hint{margin-top:24px;font-size:12px;color:var(--muted)}
     .error{margin-top:16px; font-size:12px; color:#b91c1c}
-    .success{margin-top:16px; font-size:12px; color:#059669}
     footer{position:fixed;bottom:20px;width:100%;text-align:center;color:#94a3b8;font-size:12px}
   </style>
 </head>
 <body>
+
   <!-- 헤더 -->
   <header>
     <div class="container">
@@ -79,7 +82,7 @@
       <div class="brand">
         <span class="orb"></span>
         <span class="title">Wiserlab</span>
-        <!-- <span class="pill" style="margin-left:6px; font-weight:600; color:#10a37f;">로그인</span> -->
+        <!--<span class="pill" style="margin-left:6px; font-weight:600; color:#10a37f;">로그인</span>-->
       </div>
 
       <div class="spacer"></div>
@@ -96,7 +99,7 @@
     <div class="nav">
       <a href="#" id="goGamPT">
         <span>감PT</span>
-        <span id="gamptBadge" class="badge gray">확인중…</span>
+        <span class="badge">열기</span>
       </a>
     </div>
   </nav>
@@ -105,15 +108,14 @@
   <main>
     <div class="card">
       <h1><span class="orb"></span>와이저랩 회원 로그인</h1>
-      <p>Google 계정으로 로그인하고 결제를 완료하면 <br>감PT를 이용할 수 있어요.</p>
+      <p>Google 계정으로 로그인하여 <br>와이저랩의 모든 서비스를 이용하세요.</p>
 
       <button class="auth-btn outline" id="google-login-btn" type="button">
         <img alt="" src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" style="width:18px;height:18px">
         <span>Google로 로그인</span>
       </button>
 
-      <div class="hint">결제 금액: 9,900원 (1회)</div>
-      <div class="success" id="ok" style="display:none;"></div>
+      <div class="hint">로그인 후 이 페이지에 머무르고, 상단 메뉴 또는 사이드바에서 감PT로 이동하세요.</div>
       <div class="error" id="err" style="display:none;"></div>
     </div>
   </main>
@@ -121,59 +123,40 @@
   <footer>© 2025 Team Wiserlab</footer>
 
   <script>
-    // ====== 설정값 (여기 2개는 반드시 교체) ======
+    // Supabase 초기화
     const SUPABASE_URL = "https://vzvkexbqkqstcktbbgjt.supabase.co";
     const SUPABASE_ANON_KEY =
       "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ6dmtleGJxa3FzdGNrdGJiZ2p0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIwOTA1MjQsImV4cCI6MjA3NzY2NjUyNH0.fM7ktZjsE08eaM99UsLMYYqutHpeAyMvj5U2StF6aD0";
-    const TOSS_CLIENT_KEY = "여기에_토스_클라이언트키"; // ex) test_ck_xxxxxxxxxxxx
-    const FUNCTION_URL = "https://vzvkexbqkqstcktbbgjt.supabase.co/functions/v1/toss-confirm";
-
-    // ====== 초기화 ======
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    const tossPayments = TossPayments(TOSS_CLIENT_KEY);
 
-    // UI 엘리먼트
+    // 사이드바 토글
     const menuBtn = document.getElementById('menuBtn');
     const sidebar = document.getElementById('sidebar');
     const backdrop = document.getElementById('backdrop');
-    const authRoot = document.getElementById('auth-area');
-    const loginBtn = document.getElementById('google-login-btn');
-    const errBox = document.getElementById('err');
-    const okBox = document.getElementById('ok');
-    const goGamPT = document.getElementById('goGamPT');
-    const gamptBadge = document.getElementById('gamptBadge');
 
-    // 사이드바 토글
     function openSidebar(){ sidebar.classList.add('open'); backdrop.style.display='block'; sidebar.setAttribute('aria-hidden','false'); }
     function closeSidebar(){ sidebar.classList.remove('open'); backdrop.style.display='none'; sidebar.setAttribute('aria-hidden','true'); }
+
     menuBtn.addEventListener('click', openSidebar);
     backdrop.addEventListener('click', closeSidebar);
     document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeSidebar(); });
 
-    // 유틸
+    // 감PT로 이동 (세션은 Supabase가 자동 유지)
+    document.getElementById('goGamPT').addEventListener('click', (e)=>{
+      e.preventDefault();
+      window.location.href = '/index2.html';
+    });
+
+    // 로그인 / 로그아웃 UI
+    const authRoot = document.getElementById('auth-area');
+
     function escapeHtml(s=''){ return String(s).replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
-    const KRW_PRICE = 9900;
 
     async function getCurrentUser(){
       const { data: { user } } = await supabase.auth.getUser();
       return user || null;
     }
 
-    // 결제 상태 조회 (본인 최신 결제 1건, 9900원, status='PAID')
-    async function hasPaid(userId){
-      const { data, error } = await supabase
-        .from('payments')
-        .select('status, amount')
-        .eq('user_id', userId)
-        .eq('amount', KRW_PRICE)
-        .order('created_at', { ascending: false })
-        .limit(1);
-
-      if(error) { console.error(error); return false; }
-      return (data && data[0] && data[0].status === 'PAID');
-    }
-
-    // 헤더: 로그인/로그아웃 UI
     async function renderAuthUI(){
       const user = await getCurrentUser();
       authRoot.innerHTML = '';
@@ -191,139 +174,43 @@
         logoutBtn.textContent = '로그아웃';
         logoutBtn.addEventListener('click', async ()=>{
           await supabase.auth.signOut();
-          location.reload();
+          renderAuthUI();
         });
 
         authRoot.appendChild(chip);
         authRoot.appendChild(logoutBtn);
-      } else {
-        const loginBtn2 = document.createElement('button');
-        loginBtn2.className = 'auth-btn';
-        loginBtn2.textContent = 'Google 로그인';
-        loginBtn2.addEventListener('click', loginWithGoogle);
-        authRoot.appendChild(loginBtn2);
+      }else{
+        const loginBtn = document.createElement('button');
+        loginBtn.className = 'auth-btn';
+        loginBtn.textContent = 'Google 로그인';
+        loginBtn.addEventListener('click', loginWithGoogle);
+        authRoot.appendChild(loginBtn);
       }
     }
 
-    // 사이드바 뱃지: '열기' / '결제하기'
-    async function renderGamPTBadge(){
-      const user = await getCurrentUser();
-      if(!user){
-        gamptBadge.textContent = '로그인 필요';
-        gamptBadge.classList.add('gray');
-        return;
-      }
-      gamptBadge.textContent = '확인중…';
-      const paid = await hasPaid(user.id);
-      if(paid){
-        gamptBadge.textContent = '열기';
-        gamptBadge.classList.remove('gray');
-      } else {
-        gamptBadge.textContent = '결제하기';
-        gamptBadge.classList.add('gray');
-      }
-    }
-
-    // 구글 OAuth
+    // 구글 OAuth 시작 (리디렉트는 login.html로 돌아오게)
     async function loginWithGoogle(){
       const backToHere = window.location.origin + '/login.html';
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: { redirectTo: backToHere }
       });
-      if(error){ errBox.style.display='block'; errBox.textContent = '로그인 오류: ' + (error.message || error); }
+      if(error){
+        errBox.style.display='block';
+        errBox.textContent = '로그인 중 오류가 발생했습니다: ' + (error.message || error);
+        console.error(error);
+      }
     }
+
+    const loginBtn = document.getElementById('google-login-btn');
+    const errBox = document.getElementById('err');
     loginBtn.addEventListener('click', loginWithGoogle);
 
-    // 감PT 클릭 동작: 결제 여부에 따라 분기
-    goGamPT.addEventListener('click', async (e)=>{
-      e.preventDefault();
-      const user = await getCurrentUser();
-      if(!user){ openSidebar(); errBox.style.display='block'; errBox.textContent='먼저 로그인해주세요.'; return; }
-
-      const paid = await hasPaid(user.id);
-      if(paid){
-        window.location.href = '/index2.html';
-      } else {
-        // 토스 결제 시작
-        try{
-          const orderId = 'gampt-' + user.id + '-' + Date.now();
-          const successUrl = window.location.origin + '/login.html';
-          const failUrl = window.location.origin + '/login.html';
-
-          await tossPayments.requestPayment('카드', {
-            amount: KRW_PRICE,
-            orderId,
-            orderName: '감PT 이용권',
-            successUrl,
-            failUrl,
-            customerEmail: user.email ?? undefined,
-            customerName: (user.user_metadata?.full_name || user.user_metadata?.name) ?? undefined,
-          });
-        } catch (error){
-          // 사용자가 닫음 등
-          console.warn(error);
-        }
-      }
-    });
-
-    // 토스 성공 리디렉션 처리:
-    // 성공/실패 모두 Toss가 같은 페이지로 돌려줄 수 있으니, 쿼리 파싱 후 성공 파라미터 있으면 서버 검증 호출
-    async function handleTossReturn(){
-      const url = new URL(window.location.href);
-      const paymentKey = url.searchParams.get('paymentKey');
-      const orderId = url.searchParams.get('orderId');
-      const amount = url.searchParams.get('amount');
-
-      if(!paymentKey || !orderId || !amount) return; // 성공 케이스가 아닐 가능성
-
-      try{
-        const { data: { session } } = await supabase.auth.getSession();
-        const accessToken = session?.access_token;
-
-        const resp = await fetch(FUNCTION_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {})
-          },
-          body: JSON.stringify({ paymentKey, orderId, amount: Number(amount) })
-        });
-
-        const json = await resp.json();
-        if(!resp.ok){
-          throw new Error(json?.message || '결제 확인 실패');
-        }
-
-        okBox.style.display='block';
-        okBox.textContent = '결제가 확인되었습니다. 이제 감PT를 이용할 수 있어요.';
-        errBox.style.display='none';
-
-        // 쿼리 파라미터 정리 (새로고침 시 중복확인 방지)
-        url.searchParams.delete('paymentKey');
-        url.searchParams.delete('orderId');
-        url.searchParams.delete('amount');
-        window.history.replaceState({}, '', url.toString());
-
-        // 배지 갱신
-        renderGamPTBadge();
-      }catch(err){
-        errBox.style.display='block';
-        errBox.textContent = '결제 확인 중 오류: ' + err.message;
-      }
-    }
-
-    // 초기 부팅
+    // 페이지 로드 시: 세션 반영 후 UI 렌더 / 상태변화 구독
     document.addEventListener('DOMContentLoaded', async ()=>{
-      await supabase.auth.getSession();
-      await renderAuthUI();
-      await renderGamPTBadge();
-      await handleTossReturn();
-
-      supabase.auth.onAuthStateChange((_event, _session)=>{
-        renderAuthUI();
-        renderGamPTBadge();
-      });
+      await supabase.auth.getSession(); // OAuth 리디렉션 후 세션 반영
+      renderAuthUI();
+      supabase.auth.onAuthStateChange((_event, _session)=>{ renderAuthUI(); });
     });
   </script>
 </body>
