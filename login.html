@@ -108,6 +108,156 @@
     .hint{margin-top:24px;font-size:12px;color:var(--muted)}
     .error{margin-top:16px; font-size:12px; color:#b91c1c}
     footer{position:fixed;bottom:20px;width:100%;text-align:center;color:#94a3b8;font-size:12px}
+
+/* === 가로 카드 레일 (애플 스토어 '최신 제품' 레이아웃 느낌) === */
+.rail {
+  width: 100%;
+  max-width: 1100px;
+  margin: 28px auto 0;
+  padding: 0 16px;
+  position: relative;
+}
+.rail-head {
+  display:flex; align-items:flex-end; justify-content:space-between;
+  margin: 6px 0 14px;
+}
+.rail-head h2{
+  font-size: 18px; font-weight: 800; margin: 0;
+}
+
+.rail-btn{
+  position:absolute; top:50%; transform:translateY(-50%);
+  width:36px; height:36px; border-radius:999px;
+  border:1px solid var(--line);
+  background:#fff; box-shadow: var(--shadow);
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; transition: transform .12s ease, box-shadow .12s ease, opacity .12s ease;
+  z-index: 2;
+}
+.rail-btn:hover{ transform: translateY(-50%) scale(1.04); box-shadow: 0 8px 24px rgba(17,24,39,.12) }
+.rail-btn:disabled{ opacity:.35; cursor:not-allowed; box-shadow:none }
+
+.rail-btn.left { left: 8px }
+.rail-btn.right{ right: 8px }
+
+/* 아이콘 느낌의 화살표 */
+.rail-btn svg{ width:16px; height:16px }
+
+/* 버튼이 내용과 겹쳐도 스크롤 가능하도록 */
+.rail-scroller{
+  padding: 0 44px 6px; /* 좌우 버튼 공간만큼 여백 */
+}
+
+/* 가로 스크롤 트랙 */
+.rail-scroller{
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(240px, 280px);
+  gap: 14px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;       /* Firefox */
+  -ms-overflow-style: none;    /* IE/Edge 레거시 */
+}
+.rail-scroller::-webkit-scrollbar{ 
+  width: 0;
+  height: 0;
+  display: none; 
+}
+.rail-scroller::-webkit-scrollbar-thumb{ background:#e5e7eb; border-radius:999px }
+
+/* 개별 카드 */
+.p-card{
+  scroll-snap-align: start;
+  display: grid;
+  grid-template-rows: 150px auto;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  text-decoration: none;
+  color: #111;
+  transition:
+    transform .42s cubic-bezier(.18,.89,.32,1.28),
+    box-shadow .42s ease,
+    border-color .42s ease;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(10px) scale(.982);
+  filter: blur(6px);
+  will-change: transform, opacity, filter;
+}
+.p-card:hover{
+  transform: translateY(-6px) scale(1.01);
+  box-shadow: 0 14px 34px rgba(17,24,39,.14);
+  border-color: #e5e7eb;
+}
+.p-card.inview{
+  animation: pcard-in 0.9s cubic-bezier(.22,.61,.36,1) forwards;
+}
+
+@keyframes pcard-in{
+  0%   { opacity: 0; transform: translateY(10px) scale(.982); filter: blur(6px) }
+  60%  { opacity: 1;  transform: translateY(-3px) scale(1.018); filter: blur(1.5px) }
+  100% { opacity: 1;  transform: translateY(0)    scale(1);     filter: blur(0) }
+}
+
+
+#quick-links .p-card.inview:nth-child(1){ animation-delay: 0.00s }
+#quick-links .p-card.inview:nth-child(2){ animation-delay: 0.08s }
+#quick-links .p-card.inview:nth-child(3){ animation-delay: 0.16s }
+#quick-links .p-card.inview:nth-child(4){ animation-delay: 0.24s }
+#quick-links .p-card.inview:nth-child(5){ animation-delay: 0.32s }
+#quick-links .p-card.inview:nth-child(6){ animation-delay: 0.40s }
+
+/* 비주얼 영역 */
+.p-card .thumb{
+  position: relative;
+  background: radial-gradient(120% 120% at 0% 0%, #eff6ff 0%, #f8fafc 60%, #ffffff 100%);
+  display:flex; align-items:center; justify-content:center;
+  transition: transform .42s cubic-bezier(.18,.89,.32,1.28), filter .42s ease;
+}
+.p-card .thumb .mock{
+  width: 72%;
+  height: 72%;
+  border-radius: 20px;
+  background: linear-gradient(180deg,#10a37f, #8ff3da);
+  opacity:.9;
+  filter: saturate(1.05);
+  transition: transform .5s cubic-bezier(.18,.89,.32,1.28), filter .5s ease;
+}
+.p-card:hover .thumb{ transform: translateY(-2px) }
+.p-card:hover .thumb .mock{
+  transform: scale(1.06) translateY(-2px);
+  filter: saturate(1.08);
+}
+
+/* 포커스 접근성: 키보드 탐색 시도에도 같은 상호작용을 줘서 일관성 */
+.p-card:focus-visible{
+  outline: 2px solid #10a37f33;
+  outline-offset: 2px;
+  transform: translateY(-6px) scale(1.01);
+}
+
+/* 텍스트 영역 */
+.p-card .meta{
+  padding: 14px 14px 16px;
+  text-align: center;
+}
+.p-card .meta .title{ font-weight: 800; font-size: 14px; line-height: 1.25 }
+.p-card .meta .sub{ margin-top: 6px; font-size: 12px; color: var(--muted) }
+
+/* 모션 줄이기 고려 */
+@media (prefers-reduced-motion: reduce){
+  .p-card{ transition: none; opacity: 1; transform: none; filter: none }
+  .p-card:hover{ transform: none }
+  .p-card.inview{ animation: none !important }
+  .rail-btn{ transition: none }
+  .rail-btn:hover{ transform: translateY(-50%) }
+}
+
   </style>
 </head>
 <body>
@@ -160,6 +310,47 @@
       <div class="hint" id="card-hint">로그인 후 사이드바에서 와이저랩의 서비스로 이동하세요.</div>
       <div class="error" id="err" style="display:none;"></div>
     </div>
+<section class="rail" aria-label="바로가기">
+  <div class="rail-head">
+    <h3>바로가기</h3>
+  </div>
+
+  <div class="rail-scroller" id="quick-links">
+    <a class="p-card" href="/index2.html">
+      <div class="thumb">
+        <div class="mock" aria-hidden="true"></div>
+      </div>
+      <div class="meta">
+        <div class="title">감PT</div>
+        <div class="sub">회계감사 공부의 동반자</div>
+      </div>
+    </a>
+
+    <a class="p-card" href="/papertest.html">
+      <div class="thumb"><div class="mock" style="background:linear-gradient(180deg,#6366f1,#c084fc)"></div></div>
+      <div class="meta">
+        <div class="title">시험지 생성기</div>
+        <div class="sub">내가 보고 싶은 문제만 골라서</div>
+      </div>
+    </a>
+
+    <a class="p-card" href="/login.htmll">
+      <div class="thumb"><div class="mock" style="background:linear-gradient(180deg,#f59e0b,#fbbf24)"></div></div>
+      <div class="meta">
+        <div class="title">TBD</div>
+        <div class="sub">준비 중</div>
+      </div>
+    </a>
+
+    <a class="p-card" href="/login.html">
+      <div class="thumb"><div class="mock" style="background:linear-gradient(180deg,#0ea5e9,#67e8f9)"></div></div>
+      <div class="meta">
+        <div class="title">TBD</div>
+        <div class="sub">준비 중</div>
+      </div>
+    </a>
+  </div>
+</section>	
   </main>
 
   <footer>© 2025 Team Wiserlab</footer>
@@ -301,5 +492,53 @@
       });
     });
   </script>
+<script>
+(function(){
+  const rail = document.getElementById('quick-links');
+  if(!rail) return;
+
+  const items = Array.from(rail.querySelectorAll('.p-card'));
+  if(items.length === 0) return;
+
+  const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(prefersReduced){
+    items.forEach(el => el.classList.add('inview'));
+    return;
+  }
+
+  // 보이면 'inview'를 붙여 1회 애니메이션
+  const io = new IntersectionObserver((entries, obs)=>{
+    entries.forEach(entry=>{
+      if(entry.isIntersecting){
+        entry.target.classList.add('inview');
+        obs.unobserve(entry.target);
+      }
+    });
+  }, { root: null, rootMargin: '0px 0px -10% 0px', threshold: 0.1 });
+
+  items.forEach(el => io.observe(el));
+
+  // 가로 스크롤로 뒤 카드가 새로 보일 때도 자연스럽게 등장
+  rail.addEventListener('scroll', ()=>{
+    items.forEach(el=>{
+      if(el.classList.contains('inview')) return;
+      const rect = el.getBoundingClientRect();
+      const vh = window.innerHeight || document.documentElement.clientHeight;
+      const fullyVisible = rect.top < vh && rect.bottom > 0 && rect.left < (window.innerWidth) && rect.right > 0;
+      if(fullyVisible){
+        el.classList.add('inview');
+      }
+    });
+  }, { passive: true });
+
+  // 초기 프레임에 첫 화면의 카드들 찍어주기
+  requestAnimationFrame(()=> {
+    items.forEach(el=>{
+      const rect = el.getBoundingClientRect();
+      if(rect.top < (window.innerHeight||0) && rect.bottom > 0){ el.classList.add('inview'); }
+    });
+  });
+})();
+</script>
 </body>
 </html>
