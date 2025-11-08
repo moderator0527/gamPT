@@ -45,6 +45,8 @@
     /* ===== Print Layout ===== */
     #print-root{display:none}
     @media print{
+      #quickOverlay{display:none !important}
+
       header, main{display:none !important}
       #print-root{display:block}
       @page{size:A4;margin:10mm}
@@ -121,7 +123,55 @@
     .answer-table th, .answer-table td{ border:1px solid #000; padding:3mm 2mm; text-align:center }
     .answer-meta{ display:flex; justify-content:flex-end; gap:12mm; margin-bottom:4mm }
 
-  </style>
+
+    /* ===== Quick Grader (Modal) ===== */
+    .modal-overlay{
+      position:fixed; inset:0; background:rgba(0,0,0,.35); display:none; align-items:center; justify-content:center; z-index:9999;
+    }
+    .modal{
+      background:#fff; border-radius:14px; box-shadow:0 20px 60px rgba(0,0,0,.25);
+      width:min(1100px, 96vw); max-height:90vh; overflow:auto; padding:18px 18px 22px; position:relative;
+      font-family:"Pretendard",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans KR",Arial,sans-serif;
+    }
+    .modal .close-x{
+      position:absolute; right:10px; top:8px; font-size:20px; font-weight:800; color:#6b7280; cursor:pointer; user-select:none;
+    }
+    .modal h3{ margin:0 0 10px 0; font-weight:800; font-size:18px; }
+    .quick-table{ width:100%; border-collapse:collapse; table-layout:fixed; margin-top:6px; }
+    .quick-table th,.quick-table td{ border:1px solid #e5e7eb; padding:10px 6px; text-align:center; font-size:14px; }
+    .quick-table thead th{ background:#f9fafb; font-weight:700; }
+    .quick-sec{ margin-bottom:12px; }
+    .ans-input{ width:100%; max-width:48px; text-align:center; border:1px solid #d1d5db; border-radius:8px; padding:6px 4px; }
+    .mark-o{ color:#2563eb; font-weight:800; }   /* blue O */
+    .mark-x{ color:#ef4444; font-weight:800; }   /* red X  */
+    .modal .actions{ display:flex; gap:8px; justify-content:flex-end; margin-top:12px; }
+    .modal .btn-secondary{ background:#111827; color:#fff; border:none; border-radius:12px; padding:10px 14px; font-weight:700; cursor:pointer; }
+
+  
+    /* ===== Quick Grader (Modal) ===== */
+    .modal-overlay{
+      position:fixed; inset:0; background:rgba(0,0,0,.35);
+      display:none; align-items:center; justify-content:center; z-index:9999;
+    }
+    .modal{
+      background:#fff; border-radius:14px; box-shadow:0 20px 60px rgba(0,0,0,.25);
+      width:min(1100px, 96vw); max-height:90vh; overflow:auto; padding:18px 18px 22px; position:relative;
+    }
+    .modal .close-x{
+      position:absolute; right:10px; top:8px; font-size:20px; font-weight:800; color:#6b7280; cursor:pointer; user-select:none;
+    }
+    .modal h3{ margin:0 0 10px 0; font-weight:800; font-size:18px; }
+    .quick-table{ width:100%; border-collapse:collapse; margin-top:6px; }
+    .quick-table th,.quick-table td{ border:1px solid #e5e7eb; padding:10px 6px; text-align:center; font-size:14px; }
+    .quick-table thead th{ background:#f9fafb; font-weight:700; }
+    .quick-sec{ margin-bottom:12px; }
+    .ans-input{ width:100%; max-width:48px; text-align:center; border:1px solid #d1d5db; border-radius:8px; padding:6px 4px; }
+    .mark-o{ color:#2563eb; font-weight:800; }
+    .mark-x{ color:#ef4444; font-weight:800; }
+    .modal .actions{ display:flex; gap:8px; justify-content:flex-end; margin-top:12px; }
+    .modal .btn-secondary{ background:#111827; color:#fff; border:none; border-radius:12px; padding:10px 14px; font-weight:700; cursor:pointer; }
+
+</style>
 </head>
 <body>
   <header>
@@ -140,6 +190,7 @@
           <select id="selYear"><option value="">연도 선택</option></select>
         </div>
         <div class="select"><label style="display:flex;align-items:center;gap:6px;"><input type="checkbox" id="chkAnswers"> 정답표 포함</label></div>
+        <button class="btn" id="btnQuick">빠른 채점</button>
         <button class="btn" id="btnMake" disabled>시험지 생성 (선택 0)</button>
       </div>
 
@@ -610,6 +661,230 @@
         btnMake.textContent = `시험지 생성 (선택 ${selectedIds.size})`;
       }
     });
-  </script>
+  
+    
+    // ===== Quick Grader (robust, always 20) =====
+    document.addEventListener('DOMContentLoaded', () => {
+      const quickOverlay = document.getElementById('quickOverlay');
+      const quickBody = document.getElementById('quickBody');
+      const quickClose = document.getElementById('quickClose');
+      const btnQuick = document.getElementById('btnQuick');
+      const btnGrade = document.getElementById('btnGrade');
+
+      function buildQuickTable(){
+        const N = 20;
+        const nums = Array.from({length:N}, (_,i)=>i+1);
+        const makeSection = (startIdx) => {
+          const end = Math.min(startIdx+10, N);
+          const slice = nums.slice(startIdx, end);
+          let html = '<div class="quick-sec"><table class="quick-table"><thead><tr><th>번호</th>';
+          html += slice.map(n=>`<th>${n} 번</th>`).join('');
+          html += '</tr></thead><tbody>';
+          html += '<tr><td>내답</td>';
+          html += slice.map((n)=>`<td><input type="text" class="ans-input" inputmode="numeric" data-q="${n}" /></td>`).join('');
+          html += '</tr>';
+          html += '<tr><td>정오</td>';
+          html += slice.map((n)=>`<td id="mark-${n}"></td>`).join('');
+          html += '</tr></tbody></table></div>';
+          return html;
+        };
+        return makeSection(0) + makeSection(10);
+      }
+
+      function openQuickModal(){
+        quickBody.innerHTML = buildQuickTable();  // Always 20, independent of selection
+        quickOverlay.style.display = 'flex';      // Force show
+        if(btnGrade) btnGrade.textContent = '채점하기';
+      }
+
+            function gradeQuick(){
+        const N = 20;
+
+        // 1) 정답키 추출 유틸: 선택 → 화면표 → RAW 순으로 보완
+        function getAnswersFor(n){
+          const answers = [];
+
+          // a) 선택된 문제들
+          let sel = [];
+          try { sel = (typeof getSelectedRecords === 'function') ? getSelectedRecords() : []; } catch {}
+          for (let i=0; i<Math.min(n, sel.length); i++){
+            answers[i] = String(sel[i]?.answer ?? '').trim();
+          }
+
+          // b) 현재 화면 테이블 행들(#tbl tbody)에서 채우기
+          const rows = Array.from(document.querySelectorAll('#tbl tbody tr'));
+          for (let i=0; i<Math.min(n, rows.length); i++){
+            if (!answers[i] || answers[i]===''){
+              const tds = rows[i].querySelectorAll('td');
+              // 정답 열은 6번째 셀(index 5)
+              const cell = tds[5];
+              const val = (cell?.textContent || '').trim();
+              if (val) answers[i] = val;
+            }
+          }
+
+          // c) RAW 전체에서 보완
+          if (Array.isArray(RAW)){
+            for (let i=0; i<Math.min(n, RAW.length); i++){
+              if (!answers[i] || answers[i]===''){
+                const val = String(RAW[i]?.answer ?? '').trim();
+                if (val) answers[i] = val;
+              }
+            }
+          }
+
+          // 길이 n로 보정
+          for (let i=0; i<n; i++){
+            if (answers[i] == null) answers[i] = '';
+          }
+          return answers;
+        }
+
+        const key = getAnswersFor(N);
+
+        // 입력값 읽고 채점
+        for (let i=1; i<=N; i++){
+          const inp  = document.querySelector(`.ans-input[data-q="${i}"]`);
+          const cell = document.getElementById(`mark-${i}`);
+          if (!cell) continue;
+
+          const val = (inp?.value ?? '').trim();
+          const ans = String(key[i-1] ?? '').trim();
+
+          if (!val || !ans){
+            cell.textContent = '';  // 정답 또는 입력 없으면 공란
+            continue;
+          }
+
+          cell.innerHTML = (val === ans)
+            ? '<span class="mark-o">O</span>'
+            : '<span class="mark-x">X</span>';
+        }
+
+        if (btnGrade) btnGrade.textContent = '재채점하기';
+      }
+
+
+      btnQuick?.addEventListener('click', openQuickModal);
+      btnGrade?.addEventListener('click', gradeQuick);
+      quickClose?.addEventListener('click', ()=>{ quickOverlay.style.display='none'; });
+      quickOverlay?.addEventListener('click', (e)=>{ if(e.target === quickOverlay) quickOverlay.style.display='none'; });
+
+// ===== 빠른 시험지 생성: 오답만 모아 기존 디자인으로 출력 =====
+(function(){
+  const btn = document.getElementById('btnQuickMakeWrong');
+  if(!btn) return;
+
+  // 화면의 1~20번에 대해, 선택 ▶ 화면표 ▶ RAW 순으로 "정확히 RAW와 매칭되는" 레코드를 찾아오는 헬퍼
+  // 화면/선택 여부 무시: 항상 "데이터 순서" 기준으로 반환
+  function getRecordForIndex(i){
+    if (Array.isArray(RAW) && RAW[i-1]) return RAW[i-1];
+    return null;
+  }
+
+
+  // gradeQuick과 동일한 규칙으로 정답키 생성 (선택 ▶ 화면표 ▶ RAW)
+  function getAnswersFor(n){
+    const answers = [];
+    // a) 선택
+    try{
+      const sel = (typeof getSelectedRecords === 'function') ? getSelectedRecords() : [];
+      for (let i=0; i<Math.min(n, sel.length); i++){
+        answers[i] = String(sel[i]?.answer ?? '').trim();
+      }
+    }catch{}
+    // b) 화면표
+    const rows = Array.from(document.querySelectorAll('#tbl tbody tr'));
+    for (let i=0; i<Math.min(n, rows.length); i++){
+      if (!answers[i]){
+        const tds = rows[i].querySelectorAll('td');
+        const val = (tds[5]?.textContent || '').trim();
+        if (val) answers[i] = val;
+      }
+    }
+    // c) RAW
+    if (Array.isArray(RAW)){
+      for (let i=0; i<Math.min(n, RAW.length); i++){
+        if (!answers[i]){
+          const val = String(RAW[i]?.answer ?? '').trim();
+          if (val) answers[i] = val;
+        }
+      }
+    }
+    for (let i=0;i<n;i++){ if (answers[i]==null) answers[i]=''; }
+    return answers;
+  }
+
+  async function makeWrongOnlyPaper(){
+    const N = 20;
+    const key = getAnswersFor(N);
+
+    // 1) 오답 인덱스 수집
+    const wrongIdx = [];
+    for (let i=1;i<=N;i++){
+      const inp = document.querySelector(`.ans-input[data-q="${i}"]`);
+      const val = (inp?.value ?? '').trim();
+      const ans = String(key[i-1] ?? '').trim();
+      if (!val || !ans) continue;
+      if (val !== ans) wrongIdx.push(i);
+    }
+
+    if (wrongIdx.length === 0){
+      alert('오답이 없습니다. 😊');
+      return;
+    }
+
+    // 2) 오답 인덱스 → RAW와 동일한 레코드로 변환 → selectedIds 구성
+    const prevSelected = new Set(selectedIds);
+    try{
+      const ids = new Set();
+      for (const i of wrongIdx){
+        const rec = getRecordForIndex(i);
+        if (!rec) continue;
+        const id = (typeof makeId === 'function') ? makeId(rec) : `${rec.year}::${rec.number}::${rec.unit}::${rec.question}`;
+        ids.add(id);
+      }
+      // 선택 교체
+      selectedIds = ids;
+      if (typeof updateMakeBtn === 'function') updateMakeBtn();
+
+      // 3) 기존 시험지 생성 로직 그대로 사용 (디자인/이미지 매칭 유지)
+      //    - buildSheets() 내부에서 resolveImageURL(rec.question)로
+      //      '문제 제목과 동일한 파일명' 이미지를 자동 탐색/삽입합니다.
+      await buildSheets();
+      // 4) 모달을 숨기고 바로 인쇄
+      try{ document.getElementById("quickOverlay").style.display = "none"; }catch(e){}
+      window.print();
+    }catch(err){
+      console.error(err);
+      alert('오답 시험지 생성 중 문제가 발생했습니다.');
+    }finally{
+      // 5) 기존 선택 복원 (화면 상태 보존)
+      selectedIds = prevSelected;
+      if (typeof updateMakeBtn === 'function') updateMakeBtn();
+    }
+  }
+
+  btn.addEventListener('click', makeWrongOnlyPaper);
+})();
+
+
+    });
+
+</script>
+
+  <!-- Quick Grader Modal -->
+  <div id="quickOverlay" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="quickTitle">
+    <div class="modal">
+      <div class="close-x" id="quickClose" aria-label="닫기">×</div>
+      <h3 id="quickTitle">빠른 채점</h3>
+      <div id="quickBody"></div>
+      <div class="actions">
+        <button class="btn-secondary" id="btnGrade">채점하기</button>
+        <button class="btn" id="btnQuickMakeWrong">빠른 시험지 생성</button>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>
