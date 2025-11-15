@@ -1331,7 +1331,7 @@ async function renderAuthUI() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: 'https://gampt.xyz/index2.html'  // 로그인 후 돌아올 URL
+        redirectTo: 'https://gampt.xyz/index2.html'
       }
     });
     if (error) {
@@ -1352,30 +1352,44 @@ async function renderAuthUI() {
 
   // 페이지 로드 시 세션 확인 + UI 렌더
   document.addEventListener('DOMContentLoaded', async () => {
-    // OAuth 리디렉션 후 세션 설정이 반영되기 위해 한 번 세션 확인
     await supabase.auth.getSession();
     renderAuthUI();
 
-    // 로그인 상태 변화에 반응 (새 탭/리디렉션 등)
+    // 로그인 상태 변화마다 UI 갱신
     supabase.auth.onAuthStateChange((_event, _session) => {
       renderAuthUI();
     });
   });
 
   async function renderAuthUI() {
-    const root = document.getElementById('auth-area');
+    const root = document.getElementById('auth-area');        // 헤더 로그인 영역
+    const sidebarUser = document.getElementById('sidebar-user'); // 사이드바 로그인 영역
     if (!root) return;
 
     const user = await getCurrentUser();
+
+    // 먼저 두 영역 초기화
     root.innerHTML = '';
+    if (sidebarUser) sidebarUser.innerHTML = '';
 
     if (user) {
-      // 로그인 상태: 유저 칩 + 로그아웃 버튼
+      // -------------------------
+      // 1) 헤더 로그인 칩 (제목 아래)
+      // -------------------------
+      const name =
+        (user.user_metadata && (user.user_metadata.full_name || user.user_metadata.name)) ||
+        user.email ||
+        '사용자';
+
+      const avatar =
+        (user.user_metadata && user.user_metadata.avatar_url) ||
+        '';
+
       const chip = document.createElement('div');
       chip.className = 'user-chip';
       chip.innerHTML = `
-        <img src="${(user.user_metadata && user.user_metadata.avatar_url) || ''}" alt="">
-        <span>${(user.user_metadata && (user.user_metadata.full_name || user.user_metadata.name)) || user.email || '사용자'}</span>
+        <img src="${avatar}" alt="">
+        <span>${name}</span>
       `;
 
       const logoutBtn = document.createElement('button');
@@ -1385,14 +1399,45 @@ async function renderAuthUI() {
 
       root.appendChild(chip);
       root.appendChild(logoutBtn);
+
+      // -------------------------
+      // 2) 사이드바 로그인 정보
+      // -------------------------
+      if (sidebarUser) {
+        sidebarUser.innerHTML = `
+          <img src="${avatar}" alt="" class="sidebar-user-avatar">
+          <div class="sidebar-user-text">
+            <div class="sidebar-user-name">${name}</div>
+            <div class="sidebar-user-sub">로그인됨 · 정답률 저장 중</div>
+          </div>
+        `;
+      }
+
+      // -------------------------
+      // 3) 유저별 정답률 로딩
+      // -------------------------
+      if (typeof loadUserStatsForCurrentUser === 'function') {
+        loadUserStatsForCurrentUser();
+      }
+
     } else {
-      // 비로그인: Supabase 구글 로그인 버튼
+      // =========================
+      // 비로그인 상태
+      // =========================
       const loginBtn = document.createElement('button');
       loginBtn.className = 'auth-btn';
       loginBtn.textContent = 'Google로 로그인';
       loginBtn.addEventListener('click', loginWithGoogle);
-
       root.appendChild(loginBtn);
+
+      if (sidebarUser) {
+        sidebarUser.innerHTML = `
+          <div class="sidebar-user-text">
+            <div class="sidebar-user-name">로그인 필요</div>
+            <div class="sidebar-user-sub">로그인하면 정답률이 저장돼요.</div>
+          </div>
+        `;
+      }
     }
   }
 </script>
