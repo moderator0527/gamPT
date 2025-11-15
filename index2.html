@@ -317,6 +317,21 @@
   box-shadow: 0 4px 10px rgba(0,0,0,0.08);
 }
 
+:root {
+  --gampt-green: #7df5d3;
+}
+
+/* 사이드바 버튼 활성화 스타일 */
+.sidebar-item.active {
+  border-color: var(--gampt-green) !important;
+  background: rgba(46, 204, 113, 0.15) !important;
+  color: #1b7f4b !important;
+  box-shadow: 0 0 6px rgba(46, 204, 113, 0.6),
+              0 0 12px rgba(46, 204, 113, 0.4);
+  transform: translateY(-1px);
+  font-weight: 600;
+}
+
 .sidebar-user {
   display: flex;
   align-items: center;
@@ -453,6 +468,11 @@
           카드 모드
         </button>
       </li>
+      <li>
+        <button class="sidebar-item" id="sidebarMyList">
+          나만의 리스트
+        </button>
+      </li>
     </ul>
   </aside>
 
@@ -467,7 +487,8 @@
 <div id="cardKwWrap" class="keywords" style="display:none;margin-top:8px;"></div>
           <div class="row" style="margin-top:10px;">
             <button class="btn ghost" id="toggleAnswerBtn">정답 보기</button>
-<button class="btn ghost" id="cardRevealBtn">키워드 보기</button>
+	<button class="btn ghost" id="cardRevealBtn">키워드 보기</button>
+	<button class="btn ghost" id="saveQuestionBtn">이 문제 저장하기</button>
           </div>
         </div>
         <!-- <div class="muted" style="margin-top:10px;">답안에 모든 <b>키워드</b>가 포함되면 정답입니다.</div> -->
@@ -476,6 +497,7 @@
           <div class="row" style="margin-top:10px;">
             <button class="btn primary" id="gradeBtn">채점 (Enter)</button>
             <button class="btn ghost" id="revealBtn">키워드 보기</button>
+	<button class="btn ghost" id="saveQuestionBtn">이 문제 저장하기</button>
             <div class="spacer"></div>
             <span class="muted">단축키: &nbsp;<span class="kbd">Enter</span>&ensp;채점&nbsp; · &nbsp;<span class="kbd">Ctrl/Cmd+Enter</span>&ensp;다음&nbsp; · &nbsp;<span class="kbd">Shift+Enter</span>&ensp;줄바꿈</span>
           </div>
@@ -500,12 +522,21 @@
     let state = null;
     try { state = JSON.parse(localStorage.getItem(KEY)) || null; } catch(e) {}
     if (!state || !Array.isArray(state.order) || state.order.length !== DATA.length) {
+      const baseOrder = Array.from(DATA.keys());
       state = {
-        order: Array.from(DATA.keys()),
+        order: baseOrder.slice(),  // 현재 화면에 쓰는 순서
         answers: {},
-        stats: {}
+        stats: {},
+        saved: {},                 // 🔹 { [questionId]: true } 형태
+        fullOrder: baseOrder       // 🔹 전체 390문제 기본 순서
       };
-    }
+   } else {
+     // 예전 state에 saved / fullOrder 없던 경우 대비
+     if (!state.saved) state.saved = {};
+     if (!state.fullOrder || !Array.isArray(state.fullOrder) || state.fullOrder.length !== DATA.length) {
+       state.fullOrder = Array.from(DATA.keys());
+     }
+   }
 
     const total = DATA.length;
     el('total').textContent = String(total);
@@ -563,6 +594,8 @@ el('cur').textContent = String(pos+1);
       el('result').style.display = 'none';
       el('kwWrap').innerHTML = "";
       el('answer').focus();
+
+      updateSaveButton();
     }
 
     
@@ -942,6 +975,25 @@ window.addEventListener('DOMContentLoaded', () => { initUnitFilter(); setShuffle
       console.error('loadUserStatsForCurrentUser exception', e);
     }
   }
+
+
+let myListActive = false;  // 🔹 나만의 리스트 모드 on/off
+
+function isSavedQuestion(id) {
+  return !!(state.saved && state.saved[id]);
+}
+
+function updateSaveButton() {
+  const btn = el('saveQuestionBtn');
+  if (!btn || !state || !state.order.length) return;
+
+  const id = state.order[pos];
+  if (isSavedQuestion(id)) {
+    btn.textContent = "저장된 목록에서 제거";
+  } else {
+    btn.textContent = "이 문제 저장하기";
+  }
+}
 
 </script>
 
@@ -1492,6 +1544,10 @@ async function renderAuthUI() {
         loadUserStatsForCurrentUser();
       }
 
+      if (typeof loadSavedQuestionsForCurrentUser === 'function') {
+        loadSavedQuestionsForCurrentUser();
+      }
+
     } else {
       // =========================
       // 비로그인 상태
@@ -1528,6 +1584,37 @@ async function renderAuthUI() {
 
       const shuffleBtn = $('shuffleBtn');
       const cardModeBtn = $('cardModeBtn');
+
+const saveBtn = el('saveQuestionBtn');
+  if (saveBtn) {
+    saveBtn.addEventListener('click', async function () {
+      if (!state || !state.order.length) return;
+      const id = state.order[pos];
+
+      if (isSavedQuestion(id)) {
+        // ✅ 이미 저장된 문제 → 제거
+        delete state.saved[id];
+        save();
+        updateSaveButton();
+
+        if (typeof removeSavedQuestionForCurrentUser === 'function') {
+          removeSavedQuestionForCurrentUser(id);
+        }
+      } else {
+        // ✅ 새로 저장
+        state.saved[id] = true;
+        save();
+        updateSaveButton();
+
+        if (typeof saveQuestionForCurrentUser === 'function') {
+          saveQuestionForCurrentUser(id);
+        }
+      }
+    });
+  }
+
+  // 페이지 처음 로딩 시에도 버튼 텍스트 맞춰주기
+  updateSaveButton();
 
       if (!menuBtn || !sidebar || !overlay) return;
 
@@ -1589,6 +1676,8 @@ async function renderAuthUI() {
             sidebarShuffle.textContent = "랜덤화 해제";
           }
 
+          updateSidebarActiveStyles();
+
           closeSidebar();
         });
       }
@@ -1603,11 +1692,169 @@ async function renderAuthUI() {
           const isOn = cardModeBtn.getAttribute("aria-pressed") === "true";
           sidebarCardMode.textContent = isOn ? "카드 모드 해제" : "카드 모드";
 
+          updateSidebarActiveStyles();
+
           closeSidebar();
         });
       }
     });
   })();
+
+document.addEventListener('DOMContentLoaded', function () {
+  const sidebarMyList = document.getElementById('sidebarMyList');
+
+  if (sidebarMyList) {
+    sidebarMyList.addEventListener('click', function () {
+      if (!state) return;
+
+      if (!myListActive) {
+        // ✅ 나만의 리스트 모드 켜기
+        const savedIds = state.fullOrder.filter(id => isSavedQuestion(id));
+
+        if (savedIds.length === 0) {
+          alert("아직 저장한 문제가 없습니다.");
+          return;
+        }
+
+        myListActive = true;
+        state.order = savedIds;
+        pos = 0;
+        save();
+
+        sidebarMyList.textContent = "리스트 해제";
+        sidebarMyList.classList.add("active");
+
+        if (typeof renderList === 'function') renderList();
+        go(0);
+      } else {
+        // ✅ 나만의 리스트 모드 끄기 → 전체 목록으로
+        myListActive = false;
+        state.order = state.fullOrder.slice();
+        pos = 0;
+        save();
+
+        sidebarMyList.textContent = "나만의 리스트";
+        sidebarMyList.classList.remove("active");
+
+        if (typeof renderList === 'function') renderList();
+        go(0);
+      }
+
+      // 다른 사이드바 버튼과 마찬가지로 닫기
+      if (typeof closeSidebar === 'function') closeSidebar();
+    });
+  }
+});
+
+</script>
+
+<script>
+// 🔹 상태 반영 함수
+function updateSidebarActiveStyles() {
+  const sidebarShuffle = document.getElementById('sidebarShuffle');
+  const sidebarCardMode = document.getElementById('sidebarCardMode');
+  const sidebarMyList = document.getElementById('sidebarMyList');
+
+  const shuffleBtn = document.getElementById('shuffleBtn');
+  const cardModeBtn = document.getElementById('cardModeBtn');
+  const saveQuestionBtn = document.getElementById('saveQuestionBtn');
+
+  // 랜덤화 활성화 체크
+  const shuffleActive = shuffleBtn && shuffleBtn.dataset.active === "true";
+  if (shuffleActive) sidebarShuffle.classList.add("active");
+  else sidebarShuffle.classList.remove("active");
+
+  // 카드 모드 활성화 체크
+  const cardActive = cardModeBtn && cardModeBtn.getAttribute("aria-pressed") === "true";
+  if (cardActive) sidebarCardMode.classList.add("active");
+  else sidebarCardMode.classList.remove("active");
+
+  // 나만의 리스트 모드 활성화 체크
+  const listActive = saveQuestionBtn && saveQuestionBtn.getAttribute("aria-pressed") === "true";
+  if (listActive) sidebarMyList.classList.add("active");
+  else sidebarMyList.classList.remove("active");
+}
+
+// =============================
+//  나만의 리스트: Supabase 연동
+// =============================
+
+async function saveQuestionForCurrentUser(questionId) {
+  if (!window.supabase || !supabase.auth) return;
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    await supabase
+      .from('saved_questions')
+      .upsert(
+        {
+          user_id: user.id,
+          question_id: questionId,
+          created_at: new Date().toISOString()
+        },
+        { onConflict: 'user_id,question_id' }
+      );
+  } catch (e) {
+    console.error('saveQuestionForCurrentUser error', e);
+  }
+}
+
+async function removeSavedQuestionForCurrentUser(questionId) {
+  if (!window.supabase || !supabase.auth) return;
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    await supabase
+      .from('saved_questions')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('question_id', questionId);
+  } catch (e) {
+    console.error('removeSavedQuestionForCurrentUser error', e);
+  }
+}
+
+async function loadSavedQuestionsForCurrentUser() {
+  if (!window.supabase || !supabase.auth) return;
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from('saved_questions')
+      .select('question_id')
+      .eq('user_id', user.id);
+
+    if (error) {
+      console.error('loadSavedQuestionsForCurrentUser error', error);
+      return;
+    }
+
+    if (!state) return;
+    state.saved = state.saved || {};
+
+    // 일단 다 false로 초기화
+    for (const key of Object.keys(state.saved)) {
+      state.saved[key] = false;
+    }
+
+    // DB에 있는 것들 true로 세팅
+    for (const row of (data || [])) {
+      const qid = Number(row.question_id);
+      if (!Number.isNaN(qid) && qid >= 0 && qid < DATA.length) {
+        state.saved[qid] = true;
+      }
+    }
+
+    save();
+    updateSaveButton();      // 현재 문제 버튼 텍스트 갱신
+    if (typeof renderList === 'function') renderList();
+  } catch (e) {
+    console.error('loadSavedQuestionsForCurrentUser exception', e);
+  }
+}
 </script>
 
 </body>
