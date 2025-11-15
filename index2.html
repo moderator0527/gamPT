@@ -1585,37 +1585,56 @@ async function renderAuthUI() {
       const shuffleBtn = $('shuffleBtn');
       const cardModeBtn = $('cardModeBtn');
 
-const saveBtn = el('saveQuestionBtn');
-  if (saveBtn) {
-    saveBtn.addEventListener('click', async function () {
-      if (!state || !state.order.length) return;
-      const id = state.order[pos];
+      const saveBtn = document.getElementById('saveQuestionBtn');
+      if (saveBtn) {
+        saveBtn.addEventListener('click', async function () {
+          if (!state || !state.order.length) return;
+          const id = state.order[pos];
 
-      if (isSavedQuestion(id)) {
-        // ✅ 이미 저장된 문제 → 제거
-        delete state.saved[id];
-        save();
-        updateSaveButton();
+          // 이미 저장된 문제라면 → 제거
+          if (isSavedQuestion(id)) {
+            const prev = state.saved[id];
+            delete state.saved[id];
+            save();
+            updateSaveButton();
 
-        if (typeof removeSavedQuestionForCurrentUser === 'function') {
-          removeSavedQuestionForCurrentUser(id);
-        }
-      } else {
-        // ✅ 새로 저장
-        state.saved[id] = true;
-        save();
-        updateSaveButton();
+            if (typeof removeSavedQuestionForCurrentUser === 'function') {
+              const ok = await removeSavedQuestionForCurrentUser(id);
+              // Supabase 쪽에서 실패하면 로컬 상태 되돌리기
+              if (!ok) {
+                state.saved[id] = prev;
+                save();
+                updateSaveButton();
+                alert('서버에서 저장된 문제 삭제에 실패했습니다. (Supabase 정책/스키마 확인 필요)');
+              }
+            }
+          } else {
+            // 새로 저장
+            const prev = !!state.saved[id];
+            state.saved[id] = true;
+            save();
+            updateSaveButton();
 
-        if (typeof saveQuestionForCurrentUser === 'function') {
-          saveQuestionForCurrentUser(id);
-        }
+            if (typeof saveQuestionForCurrentUser === 'function') {
+              const ok = await saveQuestionForCurrentUser(id);
+              if (!ok) {
+                // 실패하면 원상복구
+                if (!prev) delete state.saved[id]; else state.saved[id] = prev;
+                save();
+                updateSaveButton();
+                alert('서버에 문제를 저장하지 못했습니다. (Supabase 정책/스키마 확인 필요)');
+              }
+            }
+          }
+
+          // 사이드바의 "나만의 리스트" 하이라이트 동기화
+          if (typeof updateSidebarActiveStyles === 'function') {
+            updateSidebarActiveStyles();
+          }
+        });
       }
-    });
-  }
 
-  // 페이지 처음 로딩 시에도 버튼 텍스트 맞춰주기
-  updateSaveButton();
-
+      // ---- 이하 메뉴/사이드바 관련 기존 코드 그대로 유지 ----
       if (!menuBtn || !sidebar || !overlay) return;
 
       function openSidebar() {
@@ -1642,7 +1661,6 @@ const saveBtn = el('saveQuestionBtn');
         sidebarCardMode.textContent = isCardMode ? "카드 모드 해제" : "카드 모드";
       }
 
-      // 메뉴 버튼
       menuBtn.addEventListener('click', function () {
         if (sidebar.classList.contains('is-open')) {
           closeSidebar();
@@ -1779,82 +1797,126 @@ function updateSidebarActiveStyles() {
 //  나만의 리스트: Supabase 연동
 // =============================
 
-async function saveQuestionForCurrentUser(questionId) {
-  if (!window.supabase || !supabase.auth) return;
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    await supabase
-      .from('saved_questions')
-      .upsert(
-        {
-          user_id: user.id,
-          question_id: questionId,
-          created_at: new Date().toISOString()
-        },
-        { onConflict: 'user_id,question_id' }
-      );
-  } catch (e) {
-    console.error('saveQuestionForCurrentUser error', e);
-  }
-}
-
-async function removeSavedQuestionForCurrentUser(questionId) {
-  if (!window.supabase || !supabase.auth) return;
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    await supabase
-      .from('saved_questions')
-      .delete()
-      .eq('user_id', user.id)
-      .eq('question_id', questionId);
-  } catch (e) {
-    console.error('removeSavedQuestionForCurrentUser error', e);
-  }
-}
-
-async function loadSavedQuestionsForCurrentUser() {
-  if (!window.supabase || !supabase.auth) return;
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { data, error } = await supabase
-      .from('saved_questions')
-      .select('question_id')
-      .eq('user_id', user.id);
-
-    if (error) {
-      console.error('loadSavedQuestionsForCurrentUser error', error);
-      return;
+  async function saveQuestionForCurrentUser(questionId) {
+    if (!window.supabase || !supabase.auth) {
+      console.warn('supabase가 아직 초기화되지 않았습니다.');
+      return false;
     }
-
-    if (!state) return;
-    state.saved = state.saved || {};
-
-    // 일단 다 false로 초기화
-    for (const key of Object.keys(state.saved)) {
-      state.saved[key] = false;
-    }
-
-    // DB에 있는 것들 true로 세팅
-    for (const row of (data || [])) {
-      const qid = Number(row.question_id);
-      if (!Number.isNaN(qid) && qid >= 0 && qid < DATA.length) {
-        state.saved[qid] = true;
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) {
+        console.error('supabase.auth.getUser error', userError);
+        return false;
       }
-    }
+      if (!user) {
+        console.warn('로그인되지 않은 상태에서 문제 저장 시도');
+        return false;
+      }
 
-    save();
-    updateSaveButton();      // 현재 문제 버튼 텍스트 갱신
-    if (typeof renderList === 'function') renderList();
-  } catch (e) {
-    console.error('loadSavedQuestionsForCurrentUser exception', e);
+      const { error } = await supabase
+        .from('saved_questions')
+        .upsert(
+          {
+            user_id: user.id,
+            // 🔹 숫자로 명확히 캐스팅
+            question_id: Number(questionId),
+            created_at: new Date().toISOString()
+          },
+          { onConflict: 'user_id,question_id' }
+        );
+
+      if (error) {
+        console.error('saveQuestionForCurrentUser error', error);
+        return false;
+      }
+
+      console.log('saved_questions upsert 성공', { user_id: user.id, question_id: Number(questionId) });
+      return true;
+    } catch (e) {
+      console.error('saveQuestionForCurrentUser exception', e);
+      return false;
+    }
   }
-}
+
+  async function removeSavedQuestionForCurrentUser(questionId) {
+    if (!window.supabase || !supabase.auth) {
+      console.warn('supabase가 아직 초기화되지 않았습니다.');
+      return false;
+    }
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) {
+        console.error('supabase.auth.getUser error', userError);
+        return false;
+      }
+      if (!user) {
+        console.warn('로그인되지 않은 상태에서 문제 삭제 시도');
+        return false;
+      }
+
+      const { error } = await supabase
+        .from('saved_questions')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('question_id', Number(questionId));
+
+      if (error) {
+        console.error('removeSavedQuestionForCurrentUser error', error);
+        return false;
+      }
+
+      console.log('saved_questions delete 성공', { user_id: user.id, question_id: Number(questionId) });
+      return true;
+    } catch (e) {
+      console.error('removeSavedQuestionForCurrentUser exception', e);
+      return false;
+    }
+  }
+
+  async function loadSavedQuestionsForCurrentUser() {
+    if (!window.supabase || !supabase.auth) return;
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) {
+        console.error('supabase.auth.getUser error', userError);
+        return;
+      }
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('saved_questions')
+        .select('question_id')
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('loadSavedQuestionsForCurrentUser error', error);
+        return;
+      }
+
+      if (!state) return;
+      state.saved = state.saved || {};
+
+      // 일단 다 false로 초기화
+      for (const key of Object.keys(state.saved)) {
+        state.saved[key] = false;
+      }
+
+      // DB에 있는 것들 true로 세팅
+      for (const row of (data || [])) {
+        const qid = Number(row.question_id);
+        if (!Number.isNaN(qid) && qid >= 0 && qid < DATA.length) {
+          state.saved[qid] = true;
+        }
+      }
+
+      save();
+      updateSaveButton();      // 현재 문제 버튼 텍스트 갱신
+      if (typeof renderList === 'function') renderList();
+      console.log('saved_questions 로딩 완료:', data);
+    } catch (e) {
+      console.error('loadSavedQuestionsForCurrentUser exception', e);
+    }
+  }
 </script>
 
 </body>
