@@ -1032,6 +1032,7 @@ function updateSaveButton() {
   const answerEl = $('answer');
   const gradeBtn = $('gradeBtn');
   const revealBtn = $('revealBtn');
+  const saveQuestionBtn = $('saveQuestionBtn');
 
   if(!btn || !block || !toggleAnswerBtn) return;
 
@@ -1064,6 +1065,7 @@ function updateSaveButton() {
     if(answerEl)   answerEl.style.display   = window.__isCardMode ? 'none' : '';
     if(gradeBtn)   gradeBtn.style.display   = window.__isCardMode ? 'none' : '';
     if(revealBtn)  revealBtn.style.display  = window.__isCardMode ? 'none' : '';
+    if(saveQuestionBtn) saveQuestionBtn.style.display = window.__isCardMode ? 'none' : '';
     block.style.display = window.__isCardMode ? 'block' : 'none';
 
     if(window.__isCardMode){ cleanupAnswerArea(); if (window.__resetCardKeywords) window.__resetCardKeywords(); }
@@ -1857,26 +1859,24 @@ function updateSidebarActiveStyles() {
   const sidebarCardMode = document.getElementById('sidebarCardMode');
   const sidebarMyList = document.getElementById('sidebarMyList');
 
-  const shuffleBtn = document.getElementById('shuffleBtn');
-  const cardModeBtn = document.getElementById('cardModeBtn');
-  const saveQuestionBtn = document.getElementById('saveQuestionBtn');
+  const shuffleBtn   = document.getElementById('shuffleBtn');
+  const cardModeBtn  = document.getElementById('cardModeBtn');
 
   // 랜덤화 활성화 체크
   const shuffleActive = shuffleBtn && shuffleBtn.dataset.active === "true";
-  if (shuffleActive) sidebarShuffle.classList.add("active");
-  else sidebarShuffle.classList.remove("active");
+  if (shuffleActive) sidebarShuffle && sidebarShuffle.classList.add("active");
+  else sidebarShuffle && sidebarShuffle.classList.remove("active");
 
   // 카드 모드 활성화 체크
   const cardActive = cardModeBtn && cardModeBtn.getAttribute("aria-pressed") === "true";
-  if (cardActive) sidebarCardMode.classList.add("active");
-  else sidebarCardMode.classList.remove("active");
+  if (cardActive) sidebarCardMode && sidebarCardMode.classList.add("active");
+  else sidebarCardMode && sidebarCardMode.classList.remove("active");
 
   // 나만의 리스트 모드 활성화 체크
-  const listActive = saveQuestionBtn && saveQuestionBtn.getAttribute("aria-pressed") === "true";
-  if (listActive) sidebarMyList.classList.add("active");
-  else sidebarMyList.classList.remove("active");
+  const listActive = (typeof myListActive !== 'undefined') && !!myListActive;
+  if (listActive) sidebarMyList && sidebarMyList.classList.add("active");
+  else sidebarMyList && sidebarMyList.classList.remove("active");
 }
-
 // =============================
 //  나만의 리스트: Supabase 연동
 // =============================
