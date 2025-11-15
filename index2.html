@@ -440,9 +440,7 @@
       <button class="sidebar-close" id="sidebarClose" aria-label="사이드바 닫기">×</button>
     </div>
 
-    <div id="sidebar-user" class="sidebar-user">
-      <!-- 로그인 여부에 따라 JS에서 내용이 채워짐 -->
-    </div>
+    <div id="sidebar-user" class="sidebar-user"></div>
 
     <ul class="sidebar-list">
       <li>
@@ -1237,20 +1235,20 @@ window.addEventListener('DOMContentLoaded', function(){
 
   // 로그인 UI (헤더 + 사이드바) 렌더링
 async function renderAuthUI() {
-  const root = document.getElementById('auth-area');        // 헤더 로그인 칩 영역
-  const sidebarUser = document.getElementById('sidebar-user'); // 사이드바 로그인 정보 영역
+  const root = document.getElementById('auth-area');        // 헤더 로그인 영역
+  const sidebarUser = document.getElementById('sidebar-user'); // 사이드바 로그인 영역 (있으면)
   if (!root) return;
 
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
-  // 먼저 기존 UI 모두 초기화
+  // 먼저 둘 다 초기화
   root.innerHTML = '';
   if (sidebarUser) sidebarUser.innerHTML = '';
 
   if (user) {
-    // -------------------------
-    // 1) 헤더 로그인 칩 렌더링 (기존 기능 유지)
-    // -------------------------
+    // =========================
+    // 1) 헤더: 기존 로그인 칩 유지
+    // =========================
     const name =
       (user.user_metadata && (user.user_metadata.full_name || user.user_metadata.name)) ||
       user.email ||
@@ -1260,7 +1258,6 @@ async function renderAuthUI() {
       (user.user_metadata && user.user_metadata.avatar_url) ||
       '';
 
-    // 헤더용 로그인 칩
     const chip = document.createElement('div');
     chip.className = 'user-chip';
     chip.innerHTML = `
@@ -1276,9 +1273,9 @@ async function renderAuthUI() {
     root.appendChild(chip);
     root.appendChild(logoutBtn);
 
-    // -------------------------
-    // 2) 사이드바 로그인 정보 렌더링 (새 기능)
-    // -------------------------
+    // =========================
+    // 2) 사이드바 로그인 정보
+    // =========================
     if (sidebarUser) {
       sidebarUser.innerHTML = `
         <img src="${avatar}" alt="" class="sidebar-user-avatar">
@@ -1289,26 +1286,23 @@ async function renderAuthUI() {
       `;
     }
 
-    // -------------------------
-    // 3) 유저별 정답률 로딩
-    // -------------------------
+    // =========================
+    // 3) 유저별 정답률 로딩 (있으면)
+    // =========================
     if (typeof loadUserStatsForCurrentUser === 'function') {
       loadUserStatsForCurrentUser();
     }
 
   } else {
     // =========================
-    // 비로그인 상태 처리
+    // 비로그인 상태
     // =========================
-
-    // 헤더 로그인 버튼
     const loginBtn = document.createElement('button');
     loginBtn.className = 'auth-btn';
     loginBtn.textContent = 'Google로 로그인';
     loginBtn.addEventListener('click', loginWithGoogle);
     root.appendChild(loginBtn);
 
-    // 사이드바 로그인 안내
     if (sidebarUser) {
       sidebarUser.innerHTML = `
         <div class="sidebar-user-text">
