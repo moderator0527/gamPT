@@ -196,11 +196,10 @@
   font-weight: 600;  /* 옵션 텍스트 굵게 */
 }
 
+/* update-tag style */
+.update-tag{color:#10a37f;font-size:12px;font-weight:500;margin-left:6px;}
 
-
-    /* update-tag style */
-    .update-tag{color:#10a37f;font-size:12px;font-weight:500;margin-left:6px;}
-  </style>
+</style>
 
 <!-- Google Identity Services -->
 <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -225,6 +224,162 @@
   #gsi-btn-wrap { display:none; }
 </style>
 
+<style>
+/* --- 사이드바 & 메뉴 버튼 --- */
+.header-menu-btn {
+  padding: 6px 10px;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.25);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+  z-index: 40;
+}
+
+.sidebar-overlay.is-active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100vh;
+  width: 260px;
+  max-width: 80vw;
+  background: #ffffff;
+  box-shadow: -2px 0 16px rgba(0,0,0,0.12);
+  transform: translateX(100%);
+  transition: transform 0.28s ease;
+  z-index: 50;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sidebar.is-open {
+  transform: translateX(0);
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.sidebar-title {
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.sidebar-close {
+  background: transparent;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 2px 4px;
+  line-height: 1;
+}
+
+.sidebar-list {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sidebar-item {
+  width: 100%;
+  text-align: left;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  padding: 8px 12px;
+  font-size: 14px;
+  background: #f9fafb;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+}
+
+.sidebar-item:hover {
+  background: #f3f4f6;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+}
+
+.sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 4px 12px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+}
+
+.sidebar-user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #e5e7eb;
+  flex-shrink: 0;
+}
+
+.sidebar-user-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sidebar-user-name {
+  font-weight: 600;
+}
+
+.sidebar-user-sub {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+#shuffleBtn,
+#cardModeBtn {
+  display: none !important;
+}
+
+/* 헤더를 위/아래 두 줄로 */
+.header-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px; /* 1줄과 2줄 사이 간격 */
+}
+
+/* 1줄째: 제목 + 오른쪽 컨트롤들 한 줄 정렬 */
+.header-top {
+  align-items: center;   /* 세로 가운데 정렬 */
+}
+
+/* 2줄째: 로그인은 왼쪽에만 */
+.header-bottom {
+  align-items: center;
+}
+
+/* 로그인 영역 기본 정렬 & 여백 */
+.authbar {
+  margin-top: 0;
+}
+
+</style>
+
 <!-- Supabase JS v2 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -236,24 +391,72 @@
 </head>
 <body>
   <header>
-    <div class="container">
-      <div class="row">
-        <div class="brand"><span class="orb"></span><span class="title">감PT</span><span class="update-tag" style="color:#10a37f;font-size:12px;font-weight:500;margin-left:6px;">정식출시 일정 노션 업데이트</span></div>
+  <div class="container">
+    <div class="header-wrap">
+      <!-- 🔹 1줄째: 제목 + 오른쪽 컨트롤들 -->
+      <div class="row header-top">
+        <div class="brand">
+          <span class="orb"></span>
+          <span class="title">감PT</span><span class="update-tag" style="color:#10a37f;font-size:12px;font-weight:500;margin-left:6px;">정식출시 일정 노션 업데이트</span>
+        </div>
+
         <div class="spacer"></div>
-        <span class="pill">단원 <select id="unitFilter" class="unit-select"><option value="">전체</option></select></span>
+
+        <span class="pill">단원
+          <select id="unitFilter" class="unit-select">
+            <option value="">전체</option>
+          </select>
+        </span>
         <span class="pill">총 문항 <strong id="total">0</strong></span>
         <span class="pill">현재 <strong id="cur">0</strong> / <strong id="tot">0</strong></span>
+
         <button class="btn ghost" id="prevBtn">이전</button>
         <button class="btn primary" id="nextBtn">다음</button>
         <button class="btn ghost" id="shuffleBtn">랜덤화</button>
         <button class="btn ghost" id="helpBtn">도움말 (노션)</button>
         <button class="btn ghost" id="cardModeBtn" aria-pressed="false">카드 모드</button>
+
+        <button class="btn ghost header-menu-btn" id="menuBtn" aria-label="메뉴 열기">☰</button>
+      </div>
+
+      <!-- 🔹 2줄째: 제목 바로 아래 왼쪽에 Google 로그인 -->
+      <div class="row header-bottom">
         <div id="auth-area" class="authbar">
-        <!-- 여기에 로그인/로그아웃 UI가 동적으로 렌더링됩니다 -->
+          <!-- Supabase로부터 Google 로그인 버튼이 여기에 렌더링됨 -->
         </div>
-</div>
+      </div>
     </div>
-  </header>
+  </div>
+</header>
+
+
+  <!-- 사이드바 오버레이 -->
+  <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+  <!-- 사이드바 -->
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-header">
+      <span class="sidebar-title">메뉴</span>
+      <button class="sidebar-close" id="sidebarClose" aria-label="사이드바 닫기">×</button>
+    </div>
+
+    <div id="sidebar-user" class="sidebar-user">
+      <!-- 로그인 여부에 따라 JS에서 내용이 채워짐 -->
+    </div>
+
+    <ul class="sidebar-list">
+      <li>
+        <button class="sidebar-item" id="sidebarShuffle">
+          랜덤화
+        </button>
+      </li>
+      <li>
+        <button class="sidebar-item" id="sidebarCardMode">
+          카드 모드
+        </button>
+      </li>
+    </ul>
+  </aside>
 
   <main class="container">
     <div class="grid">
@@ -396,6 +599,12 @@ function grade() {
   else score = 100;
   state.stats[id] = { score };
   save();
+
+  // 🔹 로그인되어 있으면 Supabase에도 저장
+  if (typeof saveUserStatForCurrentUser === 'function') {
+    saveUserStatForCurrentUser(id, score);
+  }
+
 let msg = "";
   if (hits.length === 0) {
     res.className = 'result bad';
@@ -591,7 +800,82 @@ function initUnitFilter(){
 
 window.addEventListener('DOMContentLoaded', () => { initUnitFilter(); setShuffleButtonText(!!window.__isShuffled); });
 
+  // -------------------------
+  // 유저별 문제 정답률 저장/로드
+  // -------------------------
+
+  // 중복 로딩 방지용 플래그
+  window.__statsLoadedUserId = null;
+
+  async function saveUserStatForCurrentUser(questionId, score) {
+    if (!window.supabase || !supabase.auth) return;
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      await supabase
+        .from('question_stats')
+        .upsert(
+          {
+            user_id: user.id,
+            question_id: questionId,
+            last_score: score,
+            updated_at: new Date().toISOString()
+          },
+          { onConflict: 'user_id,question_id' }
+        );
+    } catch (e) {
+      console.error('saveUserStatForCurrentUser error', e);
+    }
+  }
+
+  async function loadUserStatsForCurrentUser() {
+    if (!window.supabase || !supabase.auth) return;
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // 이미 같은 유저에 대해 불러온 적 있으면 스킵
+      if (window.__statsLoadedUserId === user.id) return;
+      window.__statsLoadedUserId = user.id;
+
+      const { data, error } = await supabase
+        .from('question_stats')
+        .select('question_id, last_score')
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('loadUserStatsForCurrentUser error', error);
+        return;
+      }
+
+      if (!state) return;
+
+      // Supabase에서 받아온 정답률을 state.stats에 반영
+      for (const row of data || []) {
+        const qid = Number(row.question_id);
+        if (!Number.isNaN(qid) && qid >= 0 && qid < DATA.length) {
+          state.stats[qid] = { score: row.last_score ?? 0 };
+        }
+      }
+
+      // 로컬 스토리지에도 저장
+      save();
+
+      // 목록/현재 화면에 반영
+      if (typeof renderList === 'function') {
+        renderList();
+      }
+    } catch (e) {
+      console.error('loadUserStatsForCurrentUser exception', e);
+    }
+  }
+
 </script>
+
+
 <script>
 (function(){
   const $ = (id)=>document.getElementById(id);
@@ -951,70 +1235,91 @@ window.addEventListener('DOMContentLoaded', function(){
   }
   */
 
-  // 로그인 UI 렌더링
-  function renderAuthUI(){
-    const root = document.getElementById('auth-area');
-    if (!root) return;
-    const user = getUser();
+  // 로그인 UI (헤더 + 사이드바) 렌더링
+async function renderAuthUI() {
+  const root = document.getElementById('auth-area');        // 헤더 로그인 칩 영역
+  const sidebarUser = document.getElementById('sidebar-user'); // 사이드바 로그인 정보 영역
+  if (!root) return;
 
-    root.innerHTML = ''; // reset
+  const { data: { user } } = await supabase.auth.getUser();
 
-    if (user) {
-      // 로그인됨: 사용자 칩 + 로그아웃 버튼
-      const chip = document.createElement('div');
-      chip.className = 'user-chip';
-      chip.innerHTML = `
-        <img src="${user.picture || ''}" alt="">
-        <span>${escapeHtml(user.name || user.email || '사용자')}</span>
+  // 먼저 기존 UI 모두 초기화
+  root.innerHTML = '';
+  if (sidebarUser) sidebarUser.innerHTML = '';
+
+  if (user) {
+    // -------------------------
+    // 1) 헤더 로그인 칩 렌더링 (기존 기능 유지)
+    // -------------------------
+    const name =
+      (user.user_metadata && (user.user_metadata.full_name || user.user_metadata.name)) ||
+      user.email ||
+      '사용자';
+
+    const avatar =
+      (user.user_metadata && user.user_metadata.avatar_url) ||
+      '';
+
+    // 헤더용 로그인 칩
+    const chip = document.createElement('div');
+    chip.className = 'user-chip';
+    chip.innerHTML = `
+      <img src="${avatar}" alt="">
+      <span>${name}</span>
+    `;
+
+    const logoutBtn = document.createElement('button');
+    logoutBtn.className = 'auth-btn outline';
+    logoutBtn.textContent = '로그아웃';
+    logoutBtn.addEventListener('click', logout);
+
+    root.appendChild(chip);
+    root.appendChild(logoutBtn);
+
+    // -------------------------
+    // 2) 사이드바 로그인 정보 렌더링 (새 기능)
+    // -------------------------
+    if (sidebarUser) {
+      sidebarUser.innerHTML = `
+        <img src="${avatar}" alt="" class="sidebar-user-avatar">
+        <div class="sidebar-user-text">
+          <div class="sidebar-user-name">${name}</div>
+          <div class="sidebar-user-sub">로그인됨 · 정답률 저장 중</div>
+        </div>
       `;
+    }
 
-      const logoutBtn = document.createElement('button');
-      logoutBtn.className = 'auth-btn outline';
-      logoutBtn.textContent = '로그아웃';
-      logoutBtn.addEventListener('click', () => {
-        localStorage.removeItem('user');
-        renderAuthUI();
-      });
+    // -------------------------
+    // 3) 유저별 정답률 로딩
+    // -------------------------
+    if (typeof loadUserStatsForCurrentUser === 'function') {
+      loadUserStatsForCurrentUser();
+    }
 
-      root.appendChild(chip);
-      root.appendChild(logoutBtn);
-    } else {
-      // 비로그인: 구글 버튼 + (선택) 간단 로그인 버튼(팝업)
-      const loginBtn = document.createElement('button');
-      loginBtn.className = 'auth-btn';
-      loginBtn.textContent = 'Google 로그인';
-      loginBtn.addEventListener('click', () => {
-        // 팝업 UX
-        try {
-          google.accounts.id.prompt(); // One Tap 시도
-        } catch(e){
-          console.warn(e);
-        }
-      });
+  } else {
+    // =========================
+    // 비로그인 상태 처리
+    // =========================
 
-      const gsiWrap = document.createElement('div');
-      gsiWrap.id = 'gsi-btn-wrap';
-      gsiWrap.style.display = 'block';
+    // 헤더 로그인 버튼
+    const loginBtn = document.createElement('button');
+    loginBtn.className = 'auth-btn';
+    loginBtn.textContent = 'Google로 로그인';
+    loginBtn.addEventListener('click', loginWithGoogle);
+    root.appendChild(loginBtn);
 
-      root.appendChild(loginBtn);
-      root.appendChild(gsiWrap);
-
-      // 실제 구글 표준 버튼 렌더
-      try {
-        google.accounts.id.renderButton(gsiWrap, {
-          type: 'standard',
-          shape: 'pill',
-          theme: 'outline',
-          text: 'signin_with',
-          size: 'large',
-          logo_alignment: 'left'
-        });
-      } catch(e){
-        // SDK 아직 미로딩 등: 무시(로드 후 재시도 가능)
-        console.warn('renderButton deferred:', e);
-      }
+    // 사이드바 로그인 안내
+    if (sidebarUser) {
+      sidebarUser.innerHTML = `
+        <div class="sidebar-user-text">
+          <div class="sidebar-user-name">로그인 필요</div>
+          <div class="sidebar-user-sub">로그인하면 정답률이 저장돼요.</div>
+        </div>
+      `;
     }
   }
+}
+
 
   function getUser(){
     try { return JSON.parse(localStorage.getItem('user') || 'null'); }
@@ -1096,6 +1401,102 @@ window.addEventListener('DOMContentLoaded', function(){
       root.appendChild(loginBtn);
     }
   }
+</script>
+
+<script>
+  (function () {
+    function $(id) { return document.getElementById(id); }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      const menuBtn       = $('menuBtn');
+      const sidebar       = $('sidebar');
+      const overlay       = $('sidebarOverlay');
+      const closeBtn      = $('sidebarClose');
+      const sidebarShuffle  = $('sidebarShuffle');
+      const sidebarCardMode = $('sidebarCardMode');
+
+      const shuffleBtn = $('shuffleBtn');
+      const cardModeBtn = $('cardModeBtn');
+
+      if (!menuBtn || !sidebar || !overlay) return;
+
+      function openSidebar() {
+        updateSidebarTexts();
+        sidebar.classList.add('is-open');
+        overlay.classList.add('is-active');
+      }
+
+      function closeSidebar() {
+        sidebar.classList.remove('is-open');
+        overlay.classList.remove('is-active');
+      }
+
+      function updateSidebarTexts() {
+        // 랜덤화 상태 반영
+        if (shuffleBtn.dataset.active === "true") {
+          sidebarShuffle.textContent = "랜덤화 해제";
+        } else {
+          sidebarShuffle.textContent = "랜덤화";
+        }
+
+        // 카드 모드 상태 반영
+        const isCardMode = cardModeBtn.getAttribute("aria-pressed") === "true";
+        sidebarCardMode.textContent = isCardMode ? "카드 모드 해제" : "카드 모드";
+      }
+
+      // 메뉴 버튼
+      menuBtn.addEventListener('click', function () {
+        if (sidebar.classList.contains('is-open')) {
+          closeSidebar();
+        } else {
+          openSidebar();
+        }
+      });
+
+      overlay.addEventListener('click', closeSidebar);
+      if (closeBtn) closeBtn.addEventListener('click', closeSidebar);
+
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && sidebar.classList.contains('is-open')) {
+          closeSidebar();
+        }
+      });
+
+      // ---------------------------
+      //  랜덤화 기능 연결 (토글)
+      // ---------------------------
+      if (sidebarShuffle) {
+        sidebarShuffle.addEventListener('click', function () {
+          shuffleBtn.click();  // 실제 랜덤화 로직 실행
+
+          // 현재 상태 읽어서 텍스트 변경
+          if (shuffleBtn.dataset.active === "true") {
+            shuffleBtn.dataset.active = "false";
+            sidebarShuffle.textContent = "랜덤화";
+          } else {
+            shuffleBtn.dataset.active = "true";
+            sidebarShuffle.textContent = "랜덤화 해제";
+          }
+
+          closeSidebar();
+        });
+      }
+
+      // ---------------------------
+      //  카드 모드 기능 연결 (토글)
+      // ---------------------------
+      if (sidebarCardMode) {
+        sidebarCardMode.addEventListener('click', function () {
+          cardModeBtn.click(); // 기존 기능
+
+          const isOn = cardModeBtn.getAttribute("aria-pressed") === "true";
+          sidebarCardMode.textContent = isOn ? "카드 모드 해제" : "카드 모드";
+
+          closeSidebar();
+        });
+      }
+    });
+  })();
 </script>
 
 </body>
