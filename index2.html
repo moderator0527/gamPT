@@ -557,18 +557,14 @@
     el('tot').textContent = String(total);
 
     let pos = 0;
-    function updateHeaderCounts() {
+    function updateCountsFromState() {
       if (!window.state || !Array.isArray(state.order)) return;
-      const totalNow = state.order.length;
-      const curNow = totalNow ? Math.min(pos + 1, totalNow) : 0;
-
-      const totalEl = document.getElementById('total');
-      const totEl = document.getElementById('tot');
-      const curEl = document.getElementById('cur');
-
-      if (totalEl) totalEl.textContent = String(totalNow);
-      if (totEl) totEl.textContent = String(totalNow);
-      if (curEl) curEl.textContent = String(curNow);
+      const total = state.order.length;
+      const curIndex = total ? (pos + 1) : 0;
+      const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = String(val); };
+      setText('total', total);
+      setText('tot', total);
+      setText('cur', curIndex);
     }
     function save() { localStorage.setItem(KEY, JSON.stringify(state)); }
 
@@ -614,6 +610,7 @@
       const id = state.order[pos];
       const rec = DATA[id];
       // unit span removed
+el('cur').textContent = String(pos+1);
       el('title').textContent = rec.title || "(제목 없음)";
       el('criteria').innerHTML = '';
       el('answer').value = '';
@@ -622,7 +619,6 @@
       el('answer').focus();
 
       updateSaveButton();
-      if (typeof updateHeaderCounts === 'function') updateHeaderCounts();
     }
 
     
@@ -736,35 +732,81 @@ let msg = "";
     el('nextBtn').addEventListener('click', () => go(pos+1));
     
 el('shuffleBtn').addEventListener('click', () => {
-  // toggle shuffle state
-  window.__isShuffled = !!window.__isShuffled;
+  const btnDom = el('shuffleBtn');
+  const usingMyList = (typeof myListActive !== 'undefined') && !!myListActive;
+
   if (!window.__isShuffled) {
     // going to shuffle
-    const base = computeOrderedByUnit();
-    // Fisher-Yates
+    let base;
+    if (usingMyList) {
+      if (window.state && Array.isArray(state.order) && state.order.length) {
+        base = state.order.slice();
+      } else if (window.state && Array.isArray(state.fullOrder)) {
+        base = state.fullOrder.filter(id => isSavedQuestion(id));
+      } else {
+        base = Array.from(DATA.keys()).filter(id => isSavedQuestion(id));
+      }
+    } else {
+      base = computeOrderedByUnit();
+    }
+
+    if (!Array.isArray(base) || base.length === 0) {
+      base = computeOrderedByUnit();
+    }
+
+    // Fisher-Yates shuffle
     for (let i = base.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [base[i], base[j]] = [base[j], base[i]];
     }
+
     if (!window.state) window.state = {stats:{}, answers:{}, idx:0, order:[]};
     state.order = base;
     state.idx = 0;
+    pos = 0;
+
     if (typeof save === 'function') save();
     if (typeof renderList === 'function') try { renderList(); } catch(e) {}
+    if (typeof updateCountsFromState === 'function') updateCountsFromState();
     if (typeof go === 'function') go(0);
+
     window.__isShuffled = true;
+    if (btnDom) btnDom.dataset.active = "true";
     setShuffleButtonText(true);
   } else {
-    // unshuffle: restore natural order under current filter
-    const ordered = computeOrderedByUnit();
+    // unshuffle: restore natural order
+    let ordered;
+    if (usingMyList) {
+      if (window.state && Array.isArray(state.fullOrder)) {
+        ordered = state.fullOrder.filter(id => isSavedQuestion(id));
+      } else {
+        ordered = Array.from(DATA.keys()).filter(id => isSavedQuestion(id));
+      }
+    } else {
+      ordered = computeOrderedByUnit();
+    }
+
+    if (!Array.isArray(ordered) || ordered.length === 0) {
+      ordered = computeOrderedByUnit();
+    }
+
     if (!window.state) window.state = {stats:{}, answers:{}, idx:0, order:[]};
     state.order = ordered;
     state.idx = 0;
+    pos = 0;
+
     if (typeof save === 'function') save();
     if (typeof renderList === 'function') try { renderList(); } catch(e) {}
+    if (typeof updateCountsFromState === 'function') updateCountsFromState();
     if (typeof go === 'function') go(0);
+
     window.__isShuffled = false;
+    if (btnDom) btnDom.dataset.active = "false";
     setShuffleButtonText(false);
+  }
+
+  if (typeof updateSidebarActiveStyles === 'function') {
+    try { updateSidebarActiveStyles(); } catch(e) {}
   }
 });
         
@@ -816,10 +858,12 @@ function applyFilter(){
   if (!window.state) window.state = {stats:{}, answers:{}, idx:0, order:[]};
   state.order = filtered.slice();
   state.idx = 0;
-  pos = 0;
 
   // 카운트 동기화
-  if (typeof updateHeaderCounts === 'function') updateHeaderCounts();
+  const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = String(val); };
+  setText('total', filtered.length);
+  setText('tot', filtered.length);
+  setText('cur', filtered.length ? 1 : 0);
 
   // 목록/첫 문제 로딩
   if (typeof renderList === 'function') try { renderList(); } catch(e) { console.warn(e); }
@@ -852,8 +896,10 @@ function initUnitFilter(){
     state.idx = 0;
   }
   // 총 문항 초기 세팅
-  pos = state.idx || 0;
-  if (typeof updateHeaderCounts === 'function') updateHeaderCounts();
+  const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = String(val); };
+  setText('total', state.order.length);
+  setText('tot', state.order.length);
+  setText('cur', state.order.length ? 1 : 0);
 }
 
 window.addEventListener('DOMContentLoaded', () => { initUnitFilter(); setShuffleButtonText(!!window.__isShuffled); });
@@ -1061,10 +1107,10 @@ function updateSaveButton() {
     btn.textContent = window.__isCardMode ? '모드 해제' : '카드 모드';
     btn.setAttribute('aria-pressed', String(window.__isCardMode));
 
-    if(answerArea) answerArea.style.display = window.__isCardMode ? 'none' : '';
-    if(answerEl)   answerEl.style.display   = window.__isCardMode ? 'none' : '';
-    if(gradeBtn)   gradeBtn.style.display   = window.__isCardMode ? 'none' : '';
-    if(revealBtn)  revealBtn.style.display  = window.__isCardMode ? 'none' : '';
+    if(answerArea)      answerArea.style.display      = window.__isCardMode ? 'none' : '';
+    if(answerEl)        answerEl.style.display        = window.__isCardMode ? 'none' : '';
+    if(gradeBtn)        gradeBtn.style.display        = window.__isCardMode ? 'none' : '';
+    if(revealBtn)       revealBtn.style.display       = window.__isCardMode ? 'none' : '';
     if(saveQuestionBtn) saveQuestionBtn.style.display = window.__isCardMode ? 'none' : '';
     block.style.display = window.__isCardMode ? 'block' : 'none';
 
@@ -1620,63 +1666,21 @@ if (typeof loadSavedQuestionsForCurrentUser === 'function') {
             if (!state || !state.order.length) return;
             const id = state.order[pos];
 
-            const wasSaved = isSavedQuestion(id);
-
             // 이미 저장된 문제라면 → 제거
-            if (wasSaved) {
+            if (isSavedQuestion(id)) {
               const prev = state.saved[id];
               delete state.saved[id];
-
-              // 나만의 리스트 모드일 때는 현재 목록에서도 제거
-              if (myListActive && Array.isArray(state.order)) {
-                const idxInOrder = state.order.indexOf(id);
-                if (idxInOrder !== -1) {
-                  state.order.splice(idxInOrder, 1);
-                  if (pos >= state.order.length) {
-                    pos = Math.max(0, state.order.length - 1);
-                  }
-                }
-              }
-
               save();
-
-              // UI 즉시 반영
-              if (typeof renderList === 'function') {
-                try { renderList(); } catch (e) { console.warn(e); }
-              }
-
-              if (state.order.length && typeof go === 'function') {
-                try { go(pos); } catch (e) { console.warn(e); }
-              } else if (!state.order.length && myListActive) {
-                // 저장된 문제가 더 이상 없으면 전체 목록으로 복귀
-                myListActive = false;
-                state.order = state.fullOrder.slice();
-                pos = 0;
-                save();
-
-                if (typeof renderList === 'function') {
-                  try { renderList(); } catch (e) { console.warn(e); }
-                }
-                if (typeof go === 'function') {
-                  try { go(0); } catch (e) { console.warn(e); }
-                }
-
-                const sidebarMyListEl = document.getElementById('sidebarMyList');
-                if (sidebarMyListEl) {
-                  sidebarMyListEl.textContent = "나만의 리스트";
-                  sidebarMyListEl.classList.remove("active");
-                }
-              }
-
               updateSaveButton();
-              if (typeof updateHeaderCounts === 'function') updateHeaderCounts();
 
               if (typeof removeSavedQuestionForCurrentUser === 'function') {
-                try {
-                  await removeSavedQuestionForCurrentUser(id);
-                } catch (e) {
-                  console.error('removeSavedQuestionForCurrentUser error', e);
-                  // DB 오류가 나더라도 UI는 유지
+                const ok = await removeSavedQuestionForCurrentUser(id);
+                // Supabase 쪽에서 실패하면 로컬 상태 되돌리기
+                if (!ok) {
+                  state.saved[id] = prev;
+                  save();
+                  updateSaveButton();
+                  alert('서버에서 저장된 문제 삭제에 실패했습니다. (Supabase 정책/스키마 확인 필요)');
                 }
               }
             } else {
@@ -1684,27 +1688,16 @@ if (typeof loadSavedQuestionsForCurrentUser === 'function') {
               const prev = !!state.saved[id];
               state.saved[id] = true;
               save();
-
-              // 나만의 리스트 모드에서 새로 저장하는 경우, 목록에 없으면 추가
-              if (myListActive && Array.isArray(state.order) && !state.order.includes(id)) {
-                state.order.push(id);
-              }
-
               updateSaveButton();
-              if (typeof renderList === 'function') {
-                try { renderList(); } catch (e) { console.warn(e); }
-              }
-              if (typeof go === 'function') {
-                try { go(pos); } catch (e) { console.warn(e); }
-              }
-              if (typeof updateHeaderCounts === 'function') updateHeaderCounts();
 
               if (typeof saveQuestionForCurrentUser === 'function') {
-                try {
-                  await saveQuestionForCurrentUser(id);
-                } catch (e) {
-                  console.error('saveQuestionForCurrentUser error', e);
-                  // DB 오류가 나더라도 UI는 유지
+                const ok = await saveQuestionForCurrentUser(id);
+                if (!ok) {
+                  // 실패하면 원상복구
+                  if (!prev) delete state.saved[id]; else state.saved[id] = prev;
+                  save();
+                  updateSaveButton();
+                  alert('서버에 문제를 저장하지 못했습니다. (Supabase 정책/스키마 확인 필요)');
                 }
               }
             }
@@ -1768,13 +1761,11 @@ if (typeof loadSavedQuestionsForCurrentUser === 'function') {
         sidebarShuffle.addEventListener('click', function () {
           shuffleBtn.click();  // 실제 랜덤화 로직 실행
 
-          // 현재 상태 읽어서 텍스트 변경
+          // 현재 상태 읽어서 텍스트만 동기화
           if (shuffleBtn.dataset.active === "true") {
-            shuffleBtn.dataset.active = "false";
-            sidebarShuffle.textContent = "랜덤화";
-          } else {
-            shuffleBtn.dataset.active = "true";
             sidebarShuffle.textContent = "랜덤화 해제";
+          } else {
+            sidebarShuffle.textContent = "랜덤화";
           }
 
           updateSidebarActiveStyles();
@@ -1821,12 +1812,12 @@ document.addEventListener('DOMContentLoaded', function () {
         state.order = savedIds;
         pos = 0;
         save();
-        if (typeof updateHeaderCounts === 'function') updateHeaderCounts();
 
         sidebarMyList.textContent = "리스트 해제";
         sidebarMyList.classList.add("active");
 
         if (typeof renderList === 'function') renderList();
+        if (typeof updateCountsFromState === 'function') updateCountsFromState();
         go(0);
       } else {
         // ✅ 나만의 리스트 모드 끄기 → 전체 목록으로
@@ -1834,12 +1825,12 @@ document.addEventListener('DOMContentLoaded', function () {
         state.order = state.fullOrder.slice();
         pos = 0;
         save();
-        if (typeof updateHeaderCounts === 'function') updateHeaderCounts();
 
         sidebarMyList.textContent = "나만의 리스트";
         sidebarMyList.classList.remove("active");
 
         if (typeof renderList === 'function') renderList();
+        if (typeof updateCountsFromState === 'function') updateCountsFromState();
         go(0);
       }
 
@@ -1851,6 +1842,105 @@ document.addEventListener('DOMContentLoaded', function () {
 
 </script>
 
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const saveBtn = document.getElementById('saveQuestionBtn');
+    if (!saveBtn) return;
+
+    // 페이지 첫 로딩 시 현재 문제 기준으로 버튼 텍스트 맞추기
+    try { updateSaveButton(); } catch (e) {}
+
+    saveBtn.addEventListener('click', async function () {
+      if (!window.state || !Array.isArray(state.order) || !state.order.length) return;
+      const id = state.order[pos];
+
+      // 이미 저장된 문제면 → 삭제
+      if (isSavedQuestion(id)) {
+        const prev = state.saved[id];
+        delete state.saved[id];
+        save();
+        updateSaveButton();
+
+        if (typeof removeSavedQuestionForCurrentUser === 'function') {
+          const ok = await removeSavedQuestionForCurrentUser(id);
+          if (!ok) {
+            // 실패하면 롤백
+            state.saved[id] = prev;
+            save();
+            updateSaveButton();
+            alert('서버에서 저장된 문제 삭제에 실패했습니다. (Supabase 정책/스키마 확인 필요)');
+          }
+        }
+      } else {
+        // 새로 저장
+        const prev = !!state.saved[id];
+        state.saved[id] = true;
+        save();
+        updateSaveButton();
+
+        if (typeof saveQuestionForCurrentUser === 'function') {
+          const ok = await saveQuestionForCurrentUser(id);
+          if (!ok) {
+            // 실패하면 롤백
+            if (!prev) {
+              delete state.saved[id];
+            } else {
+              state.saved[id] = prev;
+            }
+            save();
+            updateSaveButton();
+            alert('서버에 문제를 저장하지 못했습니다. (Supabase 정책/스키마 확인 필요)');
+          }
+        }
+      }
+    });
+  });
+</script>
+
+<script>
+  // 이미 있으면 중복 정의 안 되게 한 번만 정의
+  function isSavedQuestion(id) {
+    if (!window.state || !state.saved) return false;
+    return !!state.saved[id];
+  }
+
+  function updateSaveButton() {
+    const btn = document.getElementById('saveQuestionBtn');
+    if (!btn || !window.state || !Array.isArray(state.order) || !state.order.length) return;
+
+    const id = state.order[pos];
+    const saved = isSavedQuestion(id);
+
+    btn.textContent = saved ? '저장된 목록에서 제거' : '이 문제 저장하기';
+    btn.setAttribute('aria-pressed', saved ? 'true' : 'false');
+  }
+
+  // 문제 이동(go) 이후에 항상 버튼 상태를 맞춰주기 위해 go를 감싸줌
+  (function () {
+    if (typeof window.go === 'function') {
+      const __origGo = window.go;
+      window.go = function(i) {
+        const r = __origGo.call(this, i);
+        try { updateSaveButton(); } catch (e) {}
+        return r;
+      };
+    } else {
+      // go가 나중에 정의되는 경우를 대비한 옵저버
+      const obs = new MutationObserver(function() {
+        if (typeof window.go === 'function') {
+          const __origGo = window.go;
+          window.go = function(i) {
+            const r = __origGo.call(this, i);
+            try { updateSaveButton(); } catch (e) {}
+            return r;
+          };
+          obs.disconnect();
+        }
+      });
+      obs.observe(document.documentElement, { childList: true, subtree: true });
+    }
+  })();
+</script>
 
 <script>
 // 🔹 상태 반영 함수
@@ -1859,24 +1949,31 @@ function updateSidebarActiveStyles() {
   const sidebarCardMode = document.getElementById('sidebarCardMode');
   const sidebarMyList = document.getElementById('sidebarMyList');
 
-  const shuffleBtn   = document.getElementById('shuffleBtn');
-  const cardModeBtn  = document.getElementById('cardModeBtn');
+  const shuffleBtn = document.getElementById('shuffleBtn');
+  const cardModeBtn = document.getElementById('cardModeBtn');
 
   // 랜덤화 활성화 체크
   const shuffleActive = shuffleBtn && shuffleBtn.dataset.active === "true";
-  if (shuffleActive) sidebarShuffle && sidebarShuffle.classList.add("active");
-  else sidebarShuffle && sidebarShuffle.classList.remove("active");
+  if (sidebarShuffle) {
+    if (shuffleActive) sidebarShuffle.classList.add("active");
+    else sidebarShuffle.classList.remove("active");
+  }
 
   // 카드 모드 활성화 체크
   const cardActive = cardModeBtn && cardModeBtn.getAttribute("aria-pressed") === "true";
-  if (cardActive) sidebarCardMode && sidebarCardMode.classList.add("active");
-  else sidebarCardMode && sidebarCardMode.classList.remove("active");
+  if (sidebarCardMode) {
+    if (cardActive) sidebarCardMode.classList.add("active");
+    else sidebarCardMode.classList.remove("active");
+  }
 
-  // 나만의 리스트 모드 활성화 체크
+  // 나만의 리스트 모드 활성화 체크 (모드 on/off만 기준)
   const listActive = (typeof myListActive !== 'undefined') && !!myListActive;
-  if (listActive) sidebarMyList && sidebarMyList.classList.add("active");
-  else sidebarMyList && sidebarMyList.classList.remove("active");
+  if (sidebarMyList) {
+    if (listActive) sidebarMyList.classList.add("active");
+    else sidebarMyList.classList.remove("active");
+  }
 }
+
 // =============================
 //  나만의 리스트: Supabase 연동
 // =============================
@@ -1916,14 +2013,8 @@ async function saveQuestionForCurrentUser(questionId) {
         ]);
 
       if (error) {
-        // 이미 동일한 (user_id, question_id) 가 저장되어 있는 경우(PostgreSQL unique violation 등)는
-        // UI 상으로는 "저장된 상태"이므로 성공으로 간주합니다.
-        if (error.code === '23505') {
-          console.warn('중복 저장 시도 - saved_questions unique 제약으로 인한 에러 무시', error);
-        } else {
-          console.error('saveQuestionForCurrentUser error', error);
-          return false;
-        }
+        console.error('saveQuestionForCurrentUser error', error);
+        return false;
       }
 
       console.log('saved_questions insert 성공', { user_id: user.id, question_id: qid });
