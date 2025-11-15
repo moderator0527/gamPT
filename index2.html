@@ -603,6 +603,10 @@ function grade() {
     saveUserStatForCurrentUser(id, score);
   }
 
+  if (typeof renderList === 'function') {
+    try { renderList(); } catch (e) { console.warn(e); }
+  }
+
 let msg = "";
   if (hits.length === 0) {
     res.className = 'result bad';
@@ -865,6 +869,74 @@ window.addEventListener('DOMContentLoaded', () => { initUnitFilter(); setShuffle
       // 목록/현재 화면에 반영
       if (typeof renderList === 'function') {
         renderList();
+      }
+    } catch (e) {
+      console.error('loadUserStatsForCurrentUser exception', e);
+    }
+  }
+
+  // ================================
+  // Supabase 연동: 유저별 정답률 저장/로드
+  // ================================
+
+  async function saveUserStatForCurrentUser(questionId, score) {
+    // supabase가 없거나, 아직 초기화 안 되면 그냥 무시
+    if (!window.supabase || !supabase.auth) return;
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // question_stats 테이블에 user_id + question_id 기준 upsert
+      await supabase
+        .from('question_stats')
+        .upsert(
+          {
+            user_id: user.id,
+            question_id: questionId,
+            last_score: score,
+            updated_at: new Date().toISOString()
+          },
+          { onConflict: 'user_id,question_id' }  // 복합 PK 기준
+        );
+    } catch (e) {
+      console.error('saveUserStatForCurrentUser error', e);
+    }
+  }
+
+  async function loadUserStatsForCurrentUser() {
+    if (!window.supabase || !supabase.auth) return;
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('question_stats')
+        .select('question_id, last_score')
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('loadUserStatsForCurrentUser error', error);
+        return;
+      }
+
+      if (!window.state) return;
+
+      // Supabase에서 가져온 정답률을 state.stats에 머지
+      for (const row of (data || [])) {
+        const qid = Number(row.question_id);
+        if (!Number.isNaN(qid) && qid >= 0 && qid < DATA.length) {
+          state.stats[qid] = { score: row.last_score ?? 0 };
+        }
+      }
+
+      // 로컬에도 저장 (오프라인/비로그인 시에도 이어서 사용)
+      save();
+
+      // 리스트 UI 갱신
+      if (typeof renderList === 'function') {
+        try { renderList(); } catch (e) { console.warn(e); }
       }
     } catch (e) {
       console.error('loadUserStatsForCurrentUser exception', e);
@@ -1408,7 +1480,7 @@ async function renderAuthUI() {
           <img src="${avatar}" alt="" class="sidebar-user-avatar">
           <div class="sidebar-user-text">
             <div class="sidebar-user-name">${name}</div>
-            <div class="sidebar-user-sub">로그인됨 · 정답률 저장 중</div>
+            <div class="sidebar-user-sub">로그인됨 · 학습 중</div>
           </div>
         `;
       }
@@ -1434,7 +1506,7 @@ async function renderAuthUI() {
         sidebarUser.innerHTML = `
           <div class="sidebar-user-text">
             <div class="sidebar-user-name">로그인 필요</div>
-            <div class="sidebar-user-sub">로그인하면 정답률이 저장돼요.</div>
+            <div class="sidebar-user-sub">로그인해서 모든 정보를 개인화하세요.</div>
           </div>
         `;
       }
