@@ -366,9 +366,9 @@ input.quiz-blank,
 .quiz-blank {
   display: inline-block;
   width: auto !important;
-  min-width: 6px;      /* 진짜 짧게 */
-  padding: 0px 1px;
-  margin: 0 1px;
+  min-width: 5em;
+  padding: 0 0.1em;
+  margin: 0 0.1em;
 
   font-size: 0.95em;
   line-height: 1.2;
@@ -386,4 +386,7 @@ input.quiz-blank:focus,
   outline: none;
   border-bottom-color: #10a37f;
   box-shadow: none;
+}
+#quizText {
+  white-space: pre-wrap;
 }

@@ -26,7 +26,7 @@
       "업무감사",
       "이행감사"
     ],
-    "quiz": "1. _____(회계)감사: _____는 _____에 따라 적절하게 작성되었는가?\n2. _____: 업무가 효과적이고 효율적으로 이루어지고 있는가?\n3. _____ : 임직원들이 업무를 수행할 때 법규를 준수하고 있는가? (_____감사에도 포함(법규의 준수 관련))"
+    "quiz": "1. _____(회계)감사: _____는 _____에 따라 적절하게 작성되었는가?\n2. _____: 업무가 효과적이고 효율적으로 이루어지고 있는가?\n3. _____ : 임직원들이 업무를 수행할 때 법규를 준수하고 있는가? \n (_____감사에도 포함(법규의 준수 관련))"
   },
   {
     "title": "정보위험이 발생하는 이유(일반적 이유)",
@@ -480,7 +480,14 @@ let msg = "";
 
 function collectQuizAnswerText() {
   const blanks = Array.from(document.querySelectorAll('.quiz-blank'));
-  const values = blanks.map(input => (input.value || '').trim()).filter(v => v.length > 0);
+  const values = blanks
+    .map(el => {
+      // input/textarea 대비도 해두고, span일 때는 textContent 사용
+      const v = ('value' in el ? el.value : el.textContent) || '';
+      return v.trim();
+    })
+    .filter(v => v.length > 0);
+
   return values.join(' ');
 }
 
@@ -499,12 +506,15 @@ function renderQuizQuestion(index) {
   const raw = (rec.quiz || '').toString();
   let blankCounter = 0;
 
-  // escapeHtml 후 언더바를 input으로 치환
-  const escaped = escapeHtml(raw);
-  const html = escaped.replace(/_{2,}/g, function () {
-    blankCounter += 1;
-    return '<input type="text" class="quiz-blank" data-blank="blank-' + blankCounter + '">';
-  });
+  // escapeHtml 후 언더바를 contenteditable span으로 치환
+const escaped = escapeHtml(raw);
+const html = escaped.replace(/_{2,}/g, function () {
+  blankCounter += 1;
+  return (
+    '<span class="quiz-blank" contenteditable="true" ' +
+      'data-blank="blank-' + blankCounter + '"></span>'
+  );
+});
 
   const quizTextEl = document.getElementById('quizText');
   if (quizTextEl) {
