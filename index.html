@@ -603,12 +603,12 @@ var DATASET_ID; var DATA;
 </div>
 <!-- <div class="muted" style="margin-top:10px;">답안에 모든 <b>키워드</b>가 포함되면 정답입니다.</div> -->
 <div style="margin-top:12px;">
-<textarea id="answer" placeholder="여기에 답을 입력하고 Enter 또는 ‘채점’을 누르세요." rows="6"></textarea>
+<textarea id="answer" placeholder="여기에 답을 입력하고 'Enter'를 두 번 빠르게 누르거나 ‘채점’을 누르세요." rows="6"></textarea>
 <div class="row" style="margin-top:10px;">
-<button class="btn primary" id="gradeBtn">채점 (Enter)</button>
+<button class="btn primary" id="gradeBtn">채점 (Enter x2)</button>
 <button class="btn ghost" id="revealBtn">키워드 보기</button>
 <div class="spacer"></div>
-<span class="muted">단축키:  <span class="kbd">Enter</span> 채점  ·  <span class="kbd">Ctrl/Cmd+Enter</span> 다음  ·  <span class="kbd">Shift+Enter</span> 줄바꿈</span>
+<span class="muted">단축키:  <span class="kbd">Enter x2</span> 채점  ·  <span class="kbd">Ctrl/Cmd+Enter</span> 다음  ·  <span class="kbd">Enter</span> 줄바꿈</span>
 </div>
 <div class="result" id="result" style="display:none;"></div>
 <div class="keywords" id="kwWrap"></div>
@@ -669,7 +669,7 @@ var DATASET_ID; var DATA;
       const rows = state.order.map((id, idx) => {
         const r = DATA[id];
         const st = state.stats[id] || {}; const rate = Number.isFinite(st.score) ? st.score : (st.tries ? Math.round(100 * st.corrects / st.tries) : 0);
-        return `<tr>
+        return `<tr data-idx="${idx}" class="list-row" style="cursor:pointer;">
           <td style="width:52px; color:#cfd5dd;">#${idx+1}</td>
           <td>${escapeHtml(r.title || '(제목 없음)')}</td>
           <td style="width:72px; text-align:right; color:#98a1ab;">${rate}%</td>
@@ -680,6 +680,23 @@ var DATASET_ID; var DATA;
         <tbody>${rows}</tbody>
       </table>`;
     }
+
+    // === 목록 클릭 -> 해당 문제로 이동 ===
+    // renderList()가 innerHTML을 매번 갈아끼우므로 이벤트 위임 방식으로 처리
+    (function bindListClick(){
+      const listEl = el('list');
+      if (!listEl) return;
+      if (listEl.__boundClick) return;
+      listEl.__boundClick = true;
+      listEl.addEventListener('click', (e) => {
+        const tr = e.target && e.target.closest ? e.target.closest('tr[data-idx]') : null;
+        if (!tr) return;
+        const idx = parseInt(tr.getAttribute('data-idx'), 10);
+        if (!Number.isFinite(idx)) return;
+        go(idx);
+      });
+    })();
+
 
     function go(i) {
       pos = Math.max(0, Math.min(i, state.order.length - 1));
@@ -855,15 +872,51 @@ function setShuffleButtonText(shuffled) {
 
 
 document.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey) { e.preventDefault(); grade(); }
-      if ((e.key === 'Enter' && (e.ctrlKey || e.metaKey))) { e.preventDefault(); el('nextBtn').click(); }
-      if ((e.key === 'x' && (e.ctrlKey || e.metaKey))) { location.href='data.html'; }
-      if ((e.key === 'm' && (e.ctrlKey || e.metaKey))) { location.href='papertest.html'; }
-      //if (e.key === 'ArrowRight') el('nextBtn').click();
-      //if (e.key === 'ArrowLeft') el('prevBtn').click();
-    });
+  const ans = document.getElementById('answer');
+  const isInAnswer = ans && document.activeElement === ans;
 
-    renderList(); go(0);
+  // In the answer textarea:
+  // - Enter: newline
+  // - Enter x2 quickly: grade()
+  // - Ctrl/Cmd+Enter: Next
+  if (isInAnswer) {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      el('nextBtn').click();
+      return;
+    }
+
+    if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
+      const now = Date.now();
+      const delay = 300; // ms
+      window.__lastEnterTime = window.__lastEnterTime || 0;
+
+      if (now - window.__lastEnterTime < delay) {
+        e.preventDefault(); // prevent confirm newline on second Enter
+        window.__lastEnterTime = 0;
+        grade();
+        return;
+      }
+
+      // First Enter: allow newline
+      window.__lastEnterTime = now;
+      setTimeout(() => { window.__lastEnterTime = 0; }, delay);
+      return;
+    }
+
+    // prevent other global shortcuts from firing when typing
+    return;
+  }
+
+  // Outside the textarea: keep existing shortcuts
+  if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey) { e.preventDefault(); grade(); }
+  if ((e.key === 'Enter' && (e.ctrlKey || e.metaKey))) { e.preventDefault(); el('nextBtn').click(); }
+  if ((e.key === 'x' && (e.ctrlKey || e.metaKey))) { location.href='data.html'; }
+  if ((e.key === 'm' && (e.ctrlKey || e.metaKey))) { location.href='papertest.html'; }
+  //if (e.key === 'ArrowRight') el('nextBtn').click();
+  //if (e.key === 'ArrowLeft') el('prevBtn').click();
+});
+renderList(); go(0);
   
 // ==== 단원 드롭다운 초기화/필터 ====
 function applyFilter(){
@@ -1245,6 +1298,7 @@ window.addEventListener('DOMContentLoaded', function(){
   observer.observe(document.body, { childList: true, subtree: true });
 })();
 </script>
+
 
 </body>
 </html>
